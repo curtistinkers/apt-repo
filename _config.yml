@@ -7,5 +7,7 @@ url: "https://apt.curtistinkers.com"
 baseurl: "" 
 
 exclude:
+  - dists/
+  - pool/
   - CNAME
   - LICENSE
