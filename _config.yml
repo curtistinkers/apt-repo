@@ -1,6 +1,6 @@
 title: curtistinkers Apt Repository
 description: My custom apt repository
-theme: jekyll-theme-hacker
+theme: jekyll-theme-midnight
 version: 1.0.0
 
 url: "https://apt.curtistinkers.com"
