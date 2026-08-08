@@ -39,15 +39,15 @@ jobs:
       
       - name: Generate apt-ftparchive
         run: |
-          apt-ftparchive generate apt-ftparchive.conf
+          apt-ftparchive generate .github/apt/apt-ftparchive.conf
 
       - name: Index Debian Trixie Test Packages
         run: |
-          apt-ftparchive -c trixie.conf release dists/trixie > dists/trixie/Release
+          apt-ftparchive -c .github/apt/trixie.conf release dists/trixie > dists/trixie/Release
 
       - name: Index Proxmox VE 9 Test Packages
         run: |
-          apt-ftparchive -c pve9.conf release dists/pve9 > dists/pve9/Release
+          apt-ftparchive -c .github/apt/pve9.conf release dists/pve9 > dists/pve9/Release
 
       - name: Output Generated Trixie Release Manifest File for Review
         run: cat dists/trixie/Release
