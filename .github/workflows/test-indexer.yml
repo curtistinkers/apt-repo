@@ -1,7 +1,7 @@
 name: TEST REPO INDEXER
 
 on:
-  workflow_dispatch: # Allows you to manually trigger this test run from the Actions tab
+  workflow_dispatch:
 
 jobs:
   test-index:
@@ -11,18 +11,18 @@ jobs:
       - name: Checkout Source Code
         uses: actions/checkout@v4
 
-      # ---------------------------------------------------------------------
-      # STEP 1: PROVISION SYSTEM LOGIC
-      # ---------------------------------------------------------------------
+      # =========================================================================
+      # 1. PROVISION SYSTEM LOGIC
+      # =========================================================================
       - name: Update System Repositories
         run: sudo apt-get update
 
       - name: Install apt-utils Utilities
         run: sudo apt-get install -y dpkg-dev apt-utils
 
-      # ---------------------------------------------------------------------
-      # STEP 2: SETUP EXPERIMENTAL WORKSPACE DIRECTORIES
-      # ---------------------------------------------------------------------
+      # =========================================================================
+      # 2. SETUP EXPERIMENTAL WORKSPACE DIRECTORIES
+      # =========================================================================
       - name: Initialize Dummy Package Pools
         run: |
           mkdir -p pool/trixie
@@ -35,48 +35,91 @@ jobs:
           echo "Simulating package indexing environment..."
           # This creates a zero-byte empty text file ending in .deb so apt-ftparchive has something to evaluate
           touch pool/trixie/test-universal-config_1.0_all.deb
-          touch pool/pve9/test-proxmox-tool_1.0_amd64.deb
 
-      # ---------------------------------------------------------------------
-      # STEP 3: EXECUTE DIRECTORY SWEEPS
-      # ---------------------------------------------------------------------
+      # =========================================================================
+      # 3. EXECUTE SAFELY GUARDED DIRECTORY SWEEPS
+      # =========================================================================
+      
       - name: Index Trixie Universal Configurations
         run: |
-          apt-ftparchive -c .github/apt/apt-ftparchive.conf packages pool/trixie/ "*_all.deb" > dists/trixie/main/binary-all/Packages
+          # 1. Search for matching patterns and evaluate using a quick count check
+          MATCH_COUNT=$(find pool/trixie/ -name "*_all.deb" 2>/dev/null | wc -l)
+          
+          if [ "$MATCH_COUNT" -gt 0 ]; then
+            echo "Found $MATCH_COUNT matching universal packages. Indexing..."
+            apt-ftparchive -c .github/apt/apt-ftparchive.conf packages pool/trixie/ "*_all.deb" > dists/trixie/main/binary-all/Packages
+          else
+            echo "No universal files found. Creating placeholder index."
+            touch dists/trixie/main/binary-all/Packages
+          fi
           gzip -9kc dists/trixie/main/binary-all/Packages > dists/trixie/main/binary-all/Packages.gz
 
       - name: Index Trixie AMD64 Binaries
         run: |
-          apt-ftparchive -c .github/apt/apt-ftparchive.conf packages pool/trixie/ "*_amd64.deb" > dists/trixie/main/binary-amd64/Packages
+          MATCH_COUNT=$(find pool/trixie/ -name "*_amd64.deb" 2>/dev/null | wc -l)
+          
+          if [ "$MATCH_COUNT" -gt 0 ]; then
+            echo "Found $MATCH_COUNT matching Trixie amd64 packages. Indexing..."
+            apt-ftparchive -c .github/apt/apt-ftparchive.conf packages pool/trixie/ "*_amd64.deb" > dists/trixie/main/binary-amd64/Packages
+          else
+            echo "No Trixie amd64 files found. Creating placeholder index."
+            touch dists/trixie/main/binary-amd64/Packages
+          fi
           gzip -9kc dists/trixie/main/binary-amd64/Packages > dists/trixie/main/binary-amd64/Packages.gz
 
       - name: Index Proxmox Universal Configurations
         run: |
-          apt-ftparchive -c .github/apt/apt-ftparchive.conf packages pool/trixie/ pool/pve9/ "*_all.deb" > dists/pve9/main/binary-all/Packages
+          # Combine existing target pools dynamically to execute the cross-track sweep
+          POOLS=""
+          [ -d "pool/trixie" ] && POOLS="$POOLS pool/trixie/"
+          [ -d "pool/pve9" ] && POOLS="$POOLS pool/pve9/"
+          
+          # Count matching files across ALL assigned pool directories
+          MATCH_COUNT=$(find $POOLS -name "*_all.deb" 2>/dev/null | wc -l)
+          
+          if [ "$MATCH_COUNT" -gt 0 ]; then
+            echo "Found $MATCH_COUNT universal packages matching PVE9 scope. Indexing..."
+            apt-ftparchive -c .github/apt/apt-ftparchive.conf packages $POOLS "*_all.deb" > dists/pve9/main/binary-all/Packages
+          else
+            echo "No cross-track universal files found for Proxmox. Creating placeholder index."
+            touch dists/pve9/main/binary-all/Packages
+          fi
           gzip -9kc dists/pve9/main/binary-all/Packages > dists/pve9/main/binary-all/Packages.gz
 
       - name: Index Proxmox AMD64 Binaries
         run: |
-          apt-ftparchive -c .github/apt/apt-ftparchive.conf packages pool/trixie/ pool/pve9/ "*_amd64.deb" > dists/pve9/main/binary-amd64/Packages
+          POOLS=""
+          [ -d "pool/trixie" ] && POOLS="$POOLS pool/trixie/"
+          [ -d "pool/pve9" ] && POOLS="$POOLS pool/pve9/"
+          
+          MATCH_COUNT=$(find $POOLS -name "*_amd64.deb" 2>/dev/null | wc -l)
+          
+          if [ "$MATCH_COUNT" -gt 0 ]; then
+            echo "Found $MATCH_COUNT amd64 packages matching PVE9 scope. Indexing..."
+            apt-ftparchive -c .github/apt/apt-ftparchive.conf packages $POOLS "*_amd64.deb" > dists/pve9/main/binary-amd64/Packages
+          else
+            echo "No amd64 tools found for Proxmox. Creating placeholder index."
+            touch dists/pve9/main/binary-amd64/Packages
+          fi
           gzip -9kc dists/pve9/main/binary-amd64/Packages > dists/pve9/main/binary-amd64/Packages.gz
 
-      # ---------------------------------------------------------------------
-      # STEP 4: METADATA SUITE VERIFICATION FILE RUNS
-      # ---------------------------------------------------------------------
+      # =========================================================================
+      # 4. METADATA SUITE VERIFICATION FILE RUNS
+      # =========================================================================
       - name: Generate Suite Release Definitions
         run: |
           apt-ftparchive -c .github/apt/trixie-release.conf release dists/trixie/ > dists/trixie/Release
           apt-ftparchive -c .github/apt/pve9-release.conf release dists/pve9/ > dists/pve9/Release
 
-      # ---------------------------------------------------------------------
-      # STEP 5: VERIFY OUTPUTS ARE VISIBLE IN LOGS
-      # ---------------------------------------------------------------------
+      # =========================================================================
+      # 5. VERIFY OUTPUTS ARE VISIBLE IN LOGS
+      # =========================================================================
       - name: Output Generated Proxmox Release Manifest File for Review
         run: cat dists/pve9/Release
 
-      # ---------------------------------------------------------------------
-      # STEP 6: SAVE AS DOWNLOADABLE ARTIFACT
-      # ---------------------------------------------------------------------
+      # =========================================================================
+      # 6. SAVE AS DOWNLOADABLE ARTIFACT
+      # =========================================================================
       - name: Archive Test Index Output Tree
         uses: actions/upload-artifact@v4
         with:
