@@ -35,20 +35,22 @@ jobs:
         uses: raven-actions/actionlint@v2
 
   deploy:
-    name: Publish to GitHub Pages
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
-    needs: lint # CRITICAL: Blocks deployment if the pipeline syntax breaks
+    needs: lint
     steps:
-      - name: Checkout Deploy Branch Codebase
+      - name: Checkout Deploy Branch
         uses: actions/checkout@v4
         with:
           ref: gh-pages
 
-      - name: Package Site Content
+      - name: Upload Pages Artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: ./ # Captures whatever static layout files are currently staging here
+          path: ./ # Uploads the root of gh-pages branch (including external packages)
 
-      - name: Publish to GitHub Pages
+      - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v5
