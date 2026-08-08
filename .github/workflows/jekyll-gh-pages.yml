@@ -49,7 +49,7 @@ jobs:
   # =========================================================================
   # JOB 2: JEKYLL BUILD AND BRANCH SHUTTLE
   # =========================================================================
-  build-and-stage:
+  build:
     name: Build Site Layouts
     runs-on: ubuntu-latest
     needs: lint
@@ -68,24 +68,11 @@ jobs:
           source: ./
           destination: ./_site
 
-      - name: Assemble Combined Staging Tree
-        run: |
-          # 1. Create a fresh, unrestricted local directory structure
-          mkdir -p ./staging_area/.github/workflows
-          
-          # 2. Copy the compiled HTML assets out of the locked Jekyll directory
-          cp -r ./_site/* ./staging_area/
-          
-          # 3. Securely clone all workflow files into the open staging path
-          if [ -d ".github/workflows" ]; then
-            cp -r .github/workflows/* ./staging_area/.github/workflows/
-          fi
-
       - name: Check-in Compiled Files to gh-pages Branch
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./staging_area
+          publish_dir: ./_site
           publish_branch: gh-pages
           keep_files: true # Protects external packages on gh-pages branch
 
@@ -97,8 +84,8 @@ jobs:
     runs-on: ubuntu-latest
     # This job executes if build-and-stage completes successfully OR 
     # it triggers directly from main if an external repo pushes to gh-pages
-    needs: build-and-stage
-    if: always() && (github.ref == 'refs/heads/gh-pages' || needs.build-and-stage.result == 'success')
+    needs: build
+    if: always() && (github.ref == 'refs/heads/gh-pages' || needs.build.result == 'success')
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
