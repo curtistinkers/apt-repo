@@ -21,25 +21,15 @@
 {"@context":"https://schema.org","@type":"WebSite","description":"My custom apt repository","headline":"Home","name":"curtistinkers Apt Repository","url":"https://apt.curtistinkers.com/"}</script>
 <!-- End Jekyll SEO tag -->
 
-    <link rel="stylesheet" href="/assets/css/style.css?v=c9bc64349a25c0eda4a2eb210dfefcc64f476d38">
-    <script src="https://code.jquery.com/jquery-1.12.4.min.js" integrity="sha256-ZosEbRLbNQzLpnKIkEdrPv7lOy9C27hHQ+Xp8a4MxAQ=" crossorigin="anonymous"></script>
-    <script src="/assets/js/respond.js"></script>
+    <link rel="stylesheet" href="/assets/css/style.css?v=93fa2d439957da29ce5b796b04bd7850c817f0a6">
+    <script src="https://code.jquery.com/jquery-3.3.0.min.js" integrity="sha256-RTQy8VOmNlT6b2PIRur37p6JEBZUE7o8wPgMvu18MC4=" crossorigin="anonymous"></script>
+    <script src="/assets/js/main.js"></script>
     <!--[if lt IE 9]>
-      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
-    <![endif]-->
-    <!--[if lt IE 8]>
-    <link rel="stylesheet" href="/assets/css/ie.css">
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv.min.js" integrity="sha256-3Jy/GbSLrg0o9y5Z5n1uw0qxZECH7C6OQpVBgNFYa0g=" crossorigin="anonymous"></script>
     <![endif]-->
     <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+
     <!-- start custom head snippets, customize with your own _includes/head-custom.html file -->
-
-<!-- Setup theme-color -->
-<!-- start theme color meta headers -->
-<meta name="theme-color" content="#353535">
-<meta name="msapplication-navbutton-color" content="#353535">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<!-- end theme color meta headers -->
-
 
 <!-- Setup Google Analytics -->
 
@@ -52,31 +42,34 @@
 
   </head>
   <body>
-      <div id="header">
-        <nav>
-          <ul>
-            <li class="fork"><a href="https://github.com/curtistinkers/apt-repo">View On GitHub</a></li>
-            
-          </ul>
-        </nav>
-      </div><!-- end header -->
+
+      <header>
+        <h1>Home</h1>
+        <p>My custom apt repository</p>
+      </header>
+
+      <div id="banner">
+        <span id="logo"></span>
+
+        <a href="https://github.com/curtistinkers/apt-repo" class="button fork"><strong>View On GitHub</strong></a>
+        
+      </div><!-- end banner -->
 
     <div class="wrapper">
-
+      <nav>
+        <ul></ul>
+      </nav>
       <section>
-        <div id="title">
-          <h1>curtistinkers Apt Repository</h1>
-          <p>My custom apt repository</p>
-          <hr>
-          <span class="credits left">Project maintained by <a href="https://github.com/curtistinkers">curtistinkers</a></span>
-          <span class="credits right">Hosted on GitHub Pages &mdash; Theme by <a href="https://twitter.com/mattgraham">mattgraham</a></span>
-        </div>
-
-        <p>This site is powered by GitHub Actions.</p>
+        <h1 id="apt-repo">apt-repo</h1>
 
 
       </section>
-
+      <footer>
+        
+          <p>Project maintained by <a href="https://github.com/curtistinkers">curtistinkers</a></p>
+        
+        <p><small>Hosted on GitHub Pages &mdash; Theme by <a href="https://twitter.com/mattgraham">mattgraham</a></small></p>
+      </footer>
     </div>
   </body>
 </html>
