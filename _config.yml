@@ -10,4 +10,5 @@ exclude:
   - dists/
   - pool/
   - CNAME
-  - LICENSE
+  - LICENSE.md
+  - README.md
