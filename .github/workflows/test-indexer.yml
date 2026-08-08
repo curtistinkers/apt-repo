@@ -355,14 +355,6 @@ jobs:
             echo "Pool directory not found. Skipping data generation."
           fi
 
-      - name: Output Generated Jekyll YAML Database for Review
-        run: |
-          if [ -f "_data/packages.yml" ]; then
-            cat _data/packages.yml
-          else
-            echo "Jekyll database file was not written."
-          fi
-
       - name: Generate apt-ftparchive
         run: apt-ftparchive generate .github/apt/apt-ftparchive.conf
 
@@ -397,6 +389,34 @@ jobs:
 
       - name: Output Generated Proxmox VE 8 Release Manifest File for Review
         run: cat dists/pve8/Release
+
+      - name: Output Generated Jekyll YAML Database for Review
+        run: |
+          if [ -f "_data/packages.yml" ]; then
+            cat _data/packages.yml
+          else
+            echo "Jekyll database file was not written."
+          fi
+
+      - name: Setup Jekyll Infrastructure
+        uses: actions/configure-pages@v5
+
+      - name: Build with Jekyll
+        uses: actions/jekyll-build-pages@v1
+        with:
+          source: ./
+          destination: ./_site # Keep the default destination to prevent action errors
+
+      - name: Transfer Web Assets to Test Subdirectory
+        run: |
+          echo "Moving compiled HTML layouts to the static/ directory..."
+          mkdir -p static
+          cp -r _site/* static/
+          
+      - name: Verify Staging Web Assets Exist on Disk
+        run: |
+          echo "=== Group A: Verification of Compiled Flat HTML Web Space ==="
+          find static/ -type f -name "*.html"
 
       - name: Archive Test Index Output Tree
         uses: actions/upload-artifact@v4
