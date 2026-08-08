@@ -24,59 +24,100 @@ jobs:
       - name: Install apt-utils Utilities
         run: sudo apt-get install -y dpkg-dev apt-utils
 
-      - name: Initialize Dummy Package Pools
+      - name: Creating apt-ftparchive Cache Folder
+        run: mkdir -p cache 
+
+      - name: Create Trixie dist tree Folders
+        run:  mkdir -p dists/trixie/{main,non-free}/{binary-all,binary-amd64,source}
+
+      - name: Create Trixie pool folders
+        run: mkdir -p pool/trixie/{main,non-free}
+      
+      # - name: Create Proxmox VE 9 dist tree Folders
+      #   run:  mkdir -p dists/pve9/{main,non-free}/{binary-all,binary-amd64,source}
+
+      # - name: Create Proxmox VE 9 pool folders
+      #   run: mkdir -p pool/pve9/{main,non-free}
+
+      # - name: Create Bookworm dist tree Folders
+      #   run:  mkdir -p dists/bookworm/{main,non-free}/{binary-all,binary-amd64,source}
+
+      # - name: Create Bookworm pool folders
+      #   run: mkdir -p pool/bookworm/{main,non-free}
+      
+      # - name: Create Proxmox VE 8 dist tree Folders
+      #   run:  mkdir -p dists/pve8/{main,non-free}/{binary-all,binary-amd64,source}
+
+      # - name: Create Proxmox VE 8 pool folders
+      #   run: mkdir -p pool/pve8/{main,non-free}
+
+      - name: Create Trixie main all Package
         run: |
-          mkdir -p dists/{trixie,pve9}/main/{binary-all,binary-amd64,source}
-          mkdir -p pool/main
-          mkdir -p cache
+          export DIST="trixie"
+          export SECTION="main"
+          export ARCH="all"
+          export VERSION="1.0"
 
-      - name: Create Real Valid Debian Trixie Packages
+          mkdir -p /tmp/${DIST}-${SECTION}-${ARCH}/DEBIAN
+          cat << EOF > /tmp/${DIST}-${SECTION}-${ARCH}/DEBIAN/control
+          Package: ${DIST}-${SECTION}-${ARCH}-test
+          Version: ${VERSION}
+          Architecture: ${ARCH}
+          Maintainer: curtistinkers
+          Description: A ${SECTION} ${ARCH} test package for ${DIST^}.
+          EOF
+          dpkg-deb --build /tmp/${DIST}-${SECTION}-${ARCH} pool/${DIST}/${SECTION}/${DIST}-${SECTION}-${ARCH}-test_${VERSION}_${ARCH}.deb
+
+      - name: Create Trixie main amd64 Package
         run: |
-          echo "Building authentic minimal Trixie universal configuration package..."
-          mkdir -p /tmp/universal/DEBIAN
-          cat << 'EOF' > /tmp/universal/DEBIAN/control
-          Package: test-trixie-universal-config
-          Version: 1.0
-          Architecture: all
-          Maintainer: curtistinkers
-          Description: A real valid universal configuration package layout
-          EOF
-          dpkg-deb --build /tmp/universal pool/main/test-trixie-universal-config_1.0_all.deb
+          export DIST="trixie"
+          export SECTION="main"
+          export ARCH="amd64"
+          export VERSION="2.0"
 
-          echo "Building authentic minimal Trixie amd64 compiled tool package..."
-          mkdir -p /tmp/amd64/DEBIAN
-          cat << 'EOF' > /tmp/amd64/DEBIAN/control
-          Package: test-trixie-amd64-package
-          Version: 1.0
-          Architecture: amd64
+          mkdir -p /tmp/${DIST}-${SECTION}-${ARCH}/DEBIAN
+          cat << EOF > /tmp/${DIST}-${SECTION}-${ARCH}/DEBIAN/control
+          Package: ${DIST}-${SECTION}-${ARCH}-test
+          Version: ${VERSION}
+          Architecture: ${ARCH}
           Maintainer: curtistinkers
-          Description: A real valid compiled amd64 target tool layout
+          Description: A ${SECTION} ${ARCH} test package for ${DIST^}.
           EOF
-          dpkg-deb --build /tmp/amd64 pool/main/test-trixie-amd64-package_1.0_amd64.deb
+          dpkg-deb --build /tmp/${DIST}-${SECTION}-${ARCH} pool/${DIST}/${SECTION}/${DIST}-${SECTION}-${ARCH}-test_${VERSION}_${ARCH}.deb
 
-      - name: Create Real Valid Proxmox VE 9 Packages
+      - name: Create Trixie non-free all Package
         run: |
-          echo "Building authentic minimal Proxmox universal configuration package..."
-          mkdir -p /tmp/universal/DEBIAN
-          cat << 'EOF' > /tmp/universal/DEBIAN/control
-          Package: test-trixie-universal-config
-          Version: 1.0
-          Architecture: all
-          Maintainer: curtistinkers
-          Description: A real valid universal configuration package layout
-          EOF
-          dpkg-deb --build /tmp/universal pool/main/test-pve9-universal-config_1.0_all.deb
+          export DIST="trixie"
+          export SECTION="non-free"
+          export ARCH="all"
+          export VERSION="3.0"
 
-          echo "Building authentic minimal Proxmox tool package..."
-          mkdir -p /tmp/pve/DEBIAN
-          cat << 'EOF' > /tmp/pve/DEBIAN/control
-          Package: test-pve9-tool
-          Version: 1.0
-          Architecture: amd64
+          mkdir -p /tmp/${DIST}-${SECTION}-${ARCH}/DEBIAN
+          cat << EOF > /tmp/${DIST}-${SECTION}-${ARCH}/DEBIAN/control
+          Package: ${DIST}-${SECTION}-${ARCH}-test
+          Version: ${VERSION}
+          Architecture: ${ARCH}
           Maintainer: curtistinkers
-          Description: A real valid specialized Proxmox compiled utility
+          Description: A ${SECTION} ${ARCH} test package for ${DIST^}.
           EOF
-          dpkg-deb --build /tmp/pve pool/main/test-pve9-tool_1.0_amd64.deb
+          dpkg-deb --build /tmp/${DIST}-${SECTION}-${ARCH} pool/${DIST}/${SECTION}/${DIST}-${SECTION}-${ARCH}-test_${VERSION}_${ARCH}.deb
+
+      - name: Create Trixie non-free amd64 Package
+        run: |
+          export DIST="trixie"
+          export SECTION="non-free"
+          export ARCH="amd64"
+          export VERSION="4.0"
+
+          mkdir -p /tmp/${DIST}-${SECTION}-${ARCH}/DEBIAN
+          cat << EOF > /tmp/${DIST}-${SECTION}-${ARCH}/DEBIAN/control
+          Package: ${DIST}-${SECTION}-${ARCH}-test
+          Version: ${VERSION}
+          Architecture: ${ARCH}
+          Maintainer: curtistinkers
+          Description: A ${SECTION} ${ARCH} test package for ${DIST^}.
+          EOF
+          dpkg-deb --build /tmp/${DIST}-${SECTION}-${ARCH} pool/${DIST}/${SECTION}/${DIST}-${SECTION}-${ARCH}-test_${VERSION}_${ARCH}.deb
       
       - name: Generate apt-ftparchive
         run: |
@@ -86,15 +127,21 @@ jobs:
         run: |
           apt-ftparchive -c .github/apt/trixie-release.conf release dists/trixie > dists/trixie/Release
 
-      - name: Index Proxmox VE 9 Test Packages
-        run: |
-          apt-ftparchive -c .github/apt/pve9-release.conf release dists/pve9 > dists/pve9/Release
+      # - name: Index Proxmox VE 9 Test Packages
+      #   run: |
+      #     apt-ftparchive -c .github/apt/pve9-release.conf release dists/pve9 > dists/pve9/Release
 
       - name: Output Generated Trixie Release Manifest File for Review
         run: cat dists/trixie/Release
 
-      - name: Output Generated Proxmox VE 9 Release Manifest File for Review
-        run: cat dists/pve9/Release
+      # - name: Output Generated Proxmox VE 9 Release Manifest File for Review
+      #   run: cat dists/pve9/Release
+
+      # - name: Output Generated Bookworm Release Manifest File for Review
+      #   run: cat dists/bookworm/Release
+
+      # - name: Output Generated Proxmox VE 8 Release Manifest File for Review
+      #   run: cat dists/pve8/Release
 
       - name: Archive Test Index Output Tree
         uses: actions/upload-artifact@v4
