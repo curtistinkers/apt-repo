@@ -34,15 +34,15 @@ jobs:
         run: |
           echo "Simulating Trixie package indexing environment..."
           # This creates a zero-byte empty text file ending in .deb so apt-ftparchive has something to evaluate
-          touch pool/main/binary-all/test-trixie-universal-config_1.0_all.deb
-          touch pool/main/binary-amd64/test-trixie-amd64-config_1.0_amd64.deb
+          touch pool/main/test-trixie-universal-config_1.0_all.deb
+          touch pool/main/test-trixie-amd64-config_1.0_amd64.deb
 
       - name: Create Test Proxmox VE 9 Package Artifacts
         run: |
           echo "Simulating Proxmox VE 9 package indexing environment..."
           # This creates a zero-byte empty text file ending in .deb so apt-ftparchive has something to evaluate
-          touch pool/main/binary-all/test-pve9-universal-config_1.0_all.deb
-          touch pool/main/binary-amd64/test-pve9-amd64-config_1.0_amd64.deb
+          touch pool/main/test-pve9-universal-config_1.0_all.deb
+          touch pool/main/test-pve9-amd64-config_1.0_amd64.deb
       
       - name: Generate apt-ftparchive
         run: |
