@@ -21,7 +21,7 @@
 {"@context":"https://schema.org","@type":"WebSite","description":"My custom apt repository","headline":"Home","name":"curtistinkers Apt Repository","url":"https://apt.curtistinkers.com/"}</script>
 <!-- End Jekyll SEO tag -->
 
-    <link rel="stylesheet" href="/assets/css/style.css?v=93fa2d439957da29ce5b796b04bd7850c817f0a6">
+    <link rel="stylesheet" href="/assets/css/style.css?v=72d8211d30914d4a623eceb45f8f7efe9e2e9389">
     <script src="https://code.jquery.com/jquery-3.3.0.min.js" integrity="sha256-RTQy8VOmNlT6b2PIRur37p6JEBZUE7o8wPgMvu18MC4=" crossorigin="anonymous"></script>
     <script src="/assets/js/main.js"></script>
     <!--[if lt IE 9]>
@@ -60,7 +60,110 @@
         <ul></ul>
       </nav>
       <section>
-        <h1 id="apt-repo">apt-repo</h1>
+        <h1 id="apt-repository-website-infrastructure">APT Repository Website Infrastructure</h1>
+
+<p>This repository hosts the static frontend and indexing automation for the custom
+APT repository served at <strong><code class="language-plaintext highlighter-rouge">http://apt.curtistinkers.com</code></strong>.</p>
+
+<p>The project uses a dual-branch architecture deployed using GitHub Actions
+to keep the <code class="language-plaintext highlighter-rouge">main</code> branch clean whilst securely handling binary package uploads.</p>
+
+<hr />
+
+<h2 id="architectural-overview">Architectural Overview</h2>
+
+<p>To keep development clean, the project isolates responsibilities between two
+active branches:</p>
+
+<div class="language-text highlighter-rouge"><div class="highlight"><pre class="highlight"><code>[Your Local Machine] 
+         │  (Push layout/text changes)
+         ▼
+    [main Branch]
+         │
+         ▼ (Job 1: Rigid Linting &amp; Verification)
+         ▼ (Job 2: Jekyll compiles Markdown to static HTML)
+   [gh-pages Branch]  ◄─── (External repos drop compiled .deb packages here)
+         │
+         ▼ (Job: Rebuilds Packages/Release maps &amp; Deploys live)
+[GitHub Pages Infrastructure]
+         │
+         ▼
+   http://apt.curtistinkers.com
+</code></pre></div></div>
+
+<h3 id="1-the-layout-branch-main">1. The Layout Branch (<code class="language-plaintext highlighter-rouge">main</code>)</h3>
+
+<ul>
+  <li>Contains only core source code, templates, theme configurations
+  (<code class="language-plaintext highlighter-rouge">_config.yml</code>), linting matrices, and documentation.</li>
+  <li>Jekyll compiling is handled <em>entirely</em> here inside isolated runners. Raw
+  binary packages or Debian metadata indexes are hidden from this branch to
+  eliminate source tree clutter.</li>
+</ul>
+
+<h3 id="2-the-delivery-staging-ground-gh-pages">2. The Delivery Staging Ground (<code class="language-plaintext highlighter-rouge">gh-pages</code>)</h3>
+
+<ul>
+  <li>Serves as the active assembly line for the web space.</li>
+  <li>Core website templates are generated into flat HTML files on <code class="language-plaintext highlighter-rouge">main</code> and
+  shuttled here via automation using a non-destructive file overlay flag
+  (<code class="language-plaintext highlighter-rouge">keep_files: true</code>).</li>
+  <li>External package pipelines securely use this branch to drop newly compiled
+  <code class="language-plaintext highlighter-rouge">.deb</code> packages directly into structural storage pools.</li>
+</ul>
+
+<hr />
+
+<h2 id="phase-1-main-pipeline-security-gates">Phase 1: Main Pipeline Security Gates</h2>
+
+<p>Every push targeting the <code class="language-plaintext highlighter-rouge">main</code> branch triggers an isolated multi-job workflow
+before any modifications touch live infrastructure.</p>
+
+<h3 id="job-1-automated-quality--syntax-gate">Job 1: Automated Quality &amp; Syntax Gate</h3>
+
+<p>To keep the logging and debugging pipelines atomic, three specialized syntax
+engines validate the branch properties sequentially:</p>
+
+<ol>
+  <li><strong>GitHub Workflow Verification:</strong> Uses <code class="language-plaintext highlighter-rouge">raven-actions/actionlint</code>
+ to monitor environment values and ensure pipeline files comply with
+ Actions rules.</li>
+  <li><strong>YAML Compliance Validation:</strong> Uses <code class="language-plaintext highlighter-rouge">ibiqlik/action-yamllint</code> coupled
+ with a root <code class="language-plaintext highlighter-rouge">.yamllint.yml</code> file to parse variables and structural blocks
+ across configurations.</li>
+  <li><strong>Document Consistency Check:</strong> Uses <code class="language-plaintext highlighter-rouge">davidanson/markdownlint-cli2-action</code> to
+ ensure structural consistency inside markdown files.</li>
+</ol>
+
+<h3 id="job-2-compilation--delivery-hand-off">Job 2: Compilation &amp; Delivery Hand Off</h3>
+
+<p>Only after Job 1 finishes successfully, Job 2 kicks off on an isolated host
+runner to build the layout matching your theme profiles. It drops the output
+silently into <code class="language-plaintext highlighter-rouge">gh-pages</code>, preserving the existing binaries already stored there.</p>
+
+<hr />
+
+<h2 id="repository-configuration-files">Repository Configuration Files</h2>
+
+<ul>
+  <li><code class="language-plaintext highlighter-rouge">_config.yml</code>
+  The Jekyll static site builder config file.</li>
+  <li><code class="language-plaintext highlighter-rouge">.yamllint.yml</code>
+  Establishes YAML syntax validation rules.</li>
+  <li><code class="language-plaintext highlighter-rouge">.markdownlint-cli2.jsonc</code>
+  Establishes Markdown syntax validation rules.</li>
+</ul>
+
+<hr />
+
+<h2 id="next-steps">Next Steps</h2>
+
+<p>We are preparing to configure the automated <strong>APT Indexer script</strong> on the
+<code class="language-plaintext highlighter-rouge">gh-pages</code> branch. This upcoming workflow will intercept package pushes,
+automatically recalculate structural Debian indices (<code class="language-plaintext highlighter-rouge">Packages.gz</code> and
+<code class="language-plaintext highlighter-rouge">Release</code>), and stream the finalized outputs live to the global internet via
+native GitHub Actions.</p>
+
 
 
       </section>
