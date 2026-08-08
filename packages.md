@@ -23,7 +23,11 @@ hosted across our infrastructure matrices.
     <tr>
       <td><code>{{ pkg.suite }}</code></td>
       <td><em>{{ pkg.component }}</em></td>
-      <td><strong>{{ pkg.name }}</strong></td>
+      <td>
+        <a href="/pool/{{ pkg.suite }}/{{ pkg.component }}/{{ pkg.file }}">
+          <strong>{{ pkg.name }}</strong>
+        </a>
+      </td>
       <td><code>{{ pkg.version }}</code></td>
       <td>{{ pkg.description }}</td>
     </tr>

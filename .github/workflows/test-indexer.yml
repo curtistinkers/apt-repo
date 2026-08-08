@@ -345,12 +345,14 @@ jobs:
               # Example: pool/trixie/main/... -> suite = trixie, component = main
               pkg_suite=$(echo "$deb" | cut -d'/' -f2)
               pkg_comp=$(echo "$deb" | cut -d'/' -f3)
+              pkg_file=$(basename "$deb")
               
               # Grouped print statements for cleaner internal code execution loops
               echo "  - name: \"$pkg_name\""
               echo "    version: \"$pkg_ver\""
               echo "    suite: \"$pkg_suite\""
               echo "    component: \"$pkg_comp\""
+              echo "    file: \"$pkg_file\""
               echo "    description: \"$pkg_desc\""
             done >> _data/packages.yml
           else
