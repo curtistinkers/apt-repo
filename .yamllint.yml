@@ -29,3 +29,5 @@ rules:
   truthy:
     allowed-values: ['true', 'false']
 
+  empty-lines:
+    max-end: 1
