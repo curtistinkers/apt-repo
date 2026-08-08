@@ -8,7 +8,7 @@ Browse the custom configuration sets, tools, and package definitions actively
 hosted across our infrastructure matrices.
 
 <!-- markdownlint-disable no-inline-html -->
-<table>
+<!-- <table>
   <thead>
     <tr>
       <th>Target Suite</th>
@@ -39,6 +39,52 @@ hosted across our infrastructure matrices.
     </tr>
     {% endfor %}
   </tbody>
-</table>
-
+</table> -->
 <!-- markdownlint-enable no-inline-html -->
+
+{% assign suite_groups = site.data.packages.packages | group_by: "suite" %}
+
+## Packages by Suite
+
+{% for group in suite_groups %}
+
+### {{ group.name }}
+
+<!-- markdownlint-disable no-inline-html -->
+<table>
+  <thead>
+    <tr>
+      <th>Component</th>
+      <th>Package Identifier</th>
+      <th>Version</th>
+      <th>Description</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for pkg in group.items %}
+    <tr>
+      <td><em>{{ pkg.component }}</em></td>
+      <td>
+        <a href="/pool/{{ pkg.suite }}/{{ pkg.component }}/{{ pkg.file }}">
+          <strong>{{ pkg.name }}</strong>
+        </a>
+      </td>
+      <td><code>{{ pkg.version }}</code></td>
+      <td>{{ pkg.description }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<table>
+  <tbody>
+    <tr>
+      <td style="text-align: center; font-style: italic; padding: 20px;">
+        No software packages catalogued in the repository yet.
+      </td>
+    </tr>
+  </tbody>
+</table>
+<!-- markdownlint-enable no-inline-html -->
+
+{% endfor %}
