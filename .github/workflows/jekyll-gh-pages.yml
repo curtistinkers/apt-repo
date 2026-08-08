@@ -1,27 +1,34 @@
-name: Deploy Jekyll Layout Templates to gh-pages
+name: Lint and Deploy Jekyll Layouts
 
 on:
-  # Runs on pushes targeting the default branch
   push:
-    branches: ["main"]
-
-  # Allows you to run this workflow manually from the Actions tab
+    branches:
+      - "main"
+      - "gh-pages" # CRITICAL: Wakes this workflow up when ANY repo pushes to gh-pages
   workflow_dispatch:
 
 # Sets permissions to allow deployment to gh-pages branch
 permissions:
-  contents: write
+  contents: write    # Needed to commit files to the gh-pages branch
+  pages: write       # Needed to publish artifacts to GitHub Pages
+  id-token: write    # Needed for OIDC token verification
 
-# Allow only one concurrent deployment, skipping runs queued between the run in-progress and latest queued.
-# However, do NOT cancel in-progress runs as we want to allow these production deployments to complete.
+# Allow only one concurrent deployment, skipping runs queued between the run
+# in-progress and latest queued. However, do NOT cancel in-progress runs as we
+# want to allow these production deployments to complete.
 concurrency:
   group: "pages"
   cancel-in-progress: false
 
 jobs:
+  # =========================================================================
+  # JOB 1: CODE & CONFIGURATION LINTING
+  # =========================================================================
   lint:
     name: Lint and Validate Code Base
     runs-on: ubuntu-latest
+    # Only run linting when changing source code on main to save run times
+    if: github.ref == 'refs/heads/main'
     steps:
       - name: Checkout Source Code
         uses: actions/checkout@v4
@@ -38,16 +45,21 @@ jobs:
 
       - name: Run Actionlint Workflow Validator
         uses: raven-actions/actionlint@v2
-      
-  deploy:
-    name: Deploy Compiled Files to gh-pages Branch
+
+  # =========================================================================
+  # JOB 2: JEKYLL BUILD AND BRANCH SHUTTLE
+  # =========================================================================
+  build-and-stage:
+    name: Build Site Layouts
     runs-on: ubuntu-latest
     needs: lint
+    # Only compiles Jekyll when you push layout updates to main
+    if: github.ref == 'refs/heads/main'
     steps:
       - name: Checkout Source Code
         uses: actions/checkout@v4
 
-      - name: Setup Pages
+      - name: Setup Pages Infrastructure
         uses: actions/configure-pages@v5
 
       - name: Build with Jekyll
@@ -66,7 +78,6 @@ jobs:
           
           # 3. Securely clone all workflow files into the open staging path
           if [ -d ".github/workflows" ]; then
-            mkdir -p ./staging_area/.github/workflows
             cp -r .github/workflows/* ./staging_area/.github/workflows/
           fi
 
@@ -74,6 +85,34 @@ jobs:
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./_site
+          publish_dir: ./staging_area
           publish_branch: gh-pages
-          keep_files: true # CRITICAL: Prevents deleting external packages on gh-pages
+          keep_files: true # Protects external packages on gh-pages branch
+
+  # =========================================================================
+  # JOB 3: CORE PRODUCTION DEPLOYMENT GATEWAY
+  # =========================================================================
+  deploy:
+    name: Publish Production Artifact to Pages
+    runs-on: ubuntu-latest
+    # This job executes if build-and-stage completes successfully OR 
+    # it triggers directly from main if an external repo pushes to gh-pages
+    needs: build-and-stage
+    if: always() && (github.ref == 'refs/heads/gh-pages' || needs.build-and-stage.result == 'success')
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Checkout Target Deploy Branch
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages # Always deploys the precise state of the package branch
+
+      - name: Upload Pages Artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./ # Packages the root of the gh-pages data branch
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v5
