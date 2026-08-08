@@ -28,7 +28,7 @@ jobs:
         run: |
           mkdir -p dists/{trixie,pve9}/main/{binary-all,binary-amd64,source}
           mkdir -p pool/main
-          # mkdir -p cache
+          mkdir -p cache
 
       - name: Create Test Debian Trixie Package Artifacts
         run: |
