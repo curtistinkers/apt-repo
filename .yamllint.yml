@@ -1,0 +1,31 @@
+# Extends built-in defaults (choices: default, relaxed)
+extends: default
+
+# Global file exclusions
+ignore:
+  - .git/
+  - .github/
+  - node_modules/
+  - vendor/
+  - _site/
+  - .jekyll-cache/
+  - .jekyll-metadata
+
+rules:
+  # Adjust line length rules (e.g., set max to 120 instead of default 80)
+  line-length:
+    max: 120
+
+  # Enforce 2 spaces for indentation
+  indentation:
+    spaces: 2
+    indent-sequences: true
+
+  # Don't require ---
+  document-start: disable
+  document-end: disable
+
+  # Forbid non-explicitly typed truthy values other than allowed ones
+  truthy:
+    allowed-values: ['true', 'false']
+

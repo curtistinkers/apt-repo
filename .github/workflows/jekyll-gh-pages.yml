@@ -19,8 +19,27 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  # Job 1: Build the site, handle branch synchronization, and stage the artifact
-  build:
+  lint:
+    name: Lint and Validate Code Base
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Run Markdownlint Compliance Checker
+        uses: davidanson/markdownlint-cli2-action@v1
+        with:
+          globs: "**/*.md"
+  
+      - name: Run YAML Syntax Validator
+        uses: ibiqlik/action-yamllint@v3
+        with:
+          config_file: .yamllint.yml
+
+      - name: Run Actionlint Workflow Validator
+        uses: raven-actions/actionlint@v2
+      
+  deploy:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Source Code
