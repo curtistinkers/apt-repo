@@ -118,18 +118,225 @@ jobs:
           Description: A ${SECTION} ${ARCH} test package for ${DIST^}.
           EOF
           dpkg-deb --build /tmp/${DIST}-${SECTION}-${ARCH} pool/${DIST}/${SECTION}/${DIST}-${SECTION}-${ARCH}-test_${VERSION}_${ARCH}.deb
-      
+
+      - name: Create Proxmox VE 9 main all Package
+        run: |
+          export DIST="pve9"
+          export SECTION="main"
+          export ARCH="all"
+          export VERSION="1.0"
+
+          mkdir -p /tmp/${DIST}-${SECTION}-${ARCH}/DEBIAN
+          cat << EOF > /tmp/${DIST}-${SECTION}-${ARCH}/DEBIAN/control
+          Package: ${DIST}-${SECTION}-${ARCH}-test
+          Version: ${VERSION}
+          Architecture: ${ARCH}
+          Maintainer: curtistinkers
+          Description: A ${SECTION} ${ARCH} test package for ${DIST^^}.
+          EOF
+          dpkg-deb --build /tmp/${DIST}-${SECTION}-${ARCH} pool/${DIST}/${SECTION}/${DIST}-${SECTION}-${ARCH}-test_${VERSION}_${ARCH}.deb
+
+      - name: Create Proxmox VE 9 main amd64 Package
+        run: |
+          export DIST="pve9"
+          export SECTION="main"
+          export ARCH="amd64"
+          export VERSION="2.0"
+
+          mkdir -p /tmp/${DIST}-${SECTION}-${ARCH}/DEBIAN
+          cat << EOF > /tmp/${DIST}-${SECTION}-${ARCH}/DEBIAN/control
+          Package: ${DIST}-${SECTION}-${ARCH}-test
+          Version: ${VERSION}
+          Architecture: ${ARCH}
+          Maintainer: curtistinkers
+          Description: A ${SECTION} ${ARCH} test package for ${DIST^^}.
+          EOF
+          dpkg-deb --build /tmp/${DIST}-${SECTION}-${ARCH} pool/${DIST}/${SECTION}/${DIST}-${SECTION}-${ARCH}-test_${VERSION}_${ARCH}.deb
+
+      - name: Create Proxmox VE 9 non-free all Package
+        run: |
+          export DIST="pve9"
+          export SECTION="non-free"
+          export ARCH="all"
+          export VERSION="3.0"
+
+          mkdir -p /tmp/${DIST}-${SECTION}-${ARCH}/DEBIAN
+          cat << EOF > /tmp/${DIST}-${SECTION}-${ARCH}/DEBIAN/control
+          Package: ${DIST}-${SECTION}-${ARCH}-test
+          Version: ${VERSION}
+          Architecture: ${ARCH}
+          Maintainer: curtistinkers
+          Description: A ${SECTION} ${ARCH} test package for ${DIST^^}.
+          EOF
+          dpkg-deb --build /tmp/${DIST}-${SECTION}-${ARCH} pool/${DIST}/${SECTION}/${DIST}-${SECTION}-${ARCH}-test_${VERSION}_${ARCH}.deb
+
+      - name: Create Proxmox VE 9 non-free amd64 Package
+        run: |
+          export DIST="pve9"
+          export SECTION="non-free"
+          export ARCH="amd64"
+          export VERSION="4.0"
+
+          mkdir -p /tmp/${DIST}-${SECTION}-${ARCH}/DEBIAN
+          cat << EOF > /tmp/${DIST}-${SECTION}-${ARCH}/DEBIAN/control
+          Package: ${DIST}-${SECTION}-${ARCH}-test
+          Version: ${VERSION}
+          Architecture: ${ARCH}
+          Maintainer: curtistinkers
+          Description: A ${SECTION} ${ARCH} test package for ${DIST^^}.
+          EOF
+          dpkg-deb --build /tmp/${DIST}-${SECTION}-${ARCH} pool/${DIST}/${SECTION}/${DIST}-${SECTION}-${ARCH}-test_${VERSION}_${ARCH}.deb
+
+      - name: Create Bookworm main all Package
+        run: |
+          export DIST="bookworm"
+          export SECTION="main"
+          export ARCH="all"
+          export VERSION="1.0"
+
+          mkdir -p /tmp/${DIST}-${SECTION}-${ARCH}/DEBIAN
+          cat << EOF > /tmp/${DIST}-${SECTION}-${ARCH}/DEBIAN/control
+          Package: ${DIST}-${SECTION}-${ARCH}-test
+          Version: ${VERSION}
+          Architecture: ${ARCH}
+          Maintainer: curtistinkers
+          Description: A ${SECTION} ${ARCH} test package for ${DIST^}.
+          EOF
+          dpkg-deb --build /tmp/${DIST}-${SECTION}-${ARCH} pool/${DIST}/${SECTION}/${DIST}-${SECTION}-${ARCH}-test_${VERSION}_${ARCH}.deb
+
+      - name: Create Bookworm main amd64 Package
+        run: |
+          export DIST="bookworm"
+          export SECTION="main"
+          export ARCH="amd64"
+          export VERSION="2.0"
+
+          mkdir -p /tmp/${DIST}-${SECTION}-${ARCH}/DEBIAN
+          cat << EOF > /tmp/${DIST}-${SECTION}-${ARCH}/DEBIAN/control
+          Package: ${DIST}-${SECTION}-${ARCH}-test
+          Version: ${VERSION}
+          Architecture: ${ARCH}
+          Maintainer: curtistinkers
+          Description: A ${SECTION} ${ARCH} test package for ${DIST^}.
+          EOF
+          dpkg-deb --build /tmp/${DIST}-${SECTION}-${ARCH} pool/${DIST}/${SECTION}/${DIST}-${SECTION}-${ARCH}-test_${VERSION}_${ARCH}.deb
+
+      - name: Create Bookworm non-free all Package
+        run: |
+          export DIST="bookworm"
+          export SECTION="non-free"
+          export ARCH="all"
+          export VERSION="3.0"
+
+          mkdir -p /tmp/${DIST}-${SECTION}-${ARCH}/DEBIAN
+          cat << EOF > /tmp/${DIST}-${SECTION}-${ARCH}/DEBIAN/control
+          Package: ${DIST}-${SECTION}-${ARCH}-test
+          Version: ${VERSION}
+          Architecture: ${ARCH}
+          Maintainer: curtistinkers
+          Description: A ${SECTION} ${ARCH} test package for ${DIST^}.
+          EOF
+          dpkg-deb --build /tmp/${DIST}-${SECTION}-${ARCH} pool/${DIST}/${SECTION}/${DIST}-${SECTION}-${ARCH}-test_${VERSION}_${ARCH}.deb
+
+      - name: Create Bookworm non-free amd64 Package
+        run: |
+          export DIST="bookworm"
+          export SECTION="non-free"
+          export ARCH="amd64"
+          export VERSION="4.0"
+
+          mkdir -p /tmp/${DIST}-${SECTION}-${ARCH}/DEBIAN
+          cat << EOF > /tmp/${DIST}-${SECTION}-${ARCH}/DEBIAN/control
+          Package: ${DIST}-${SECTION}-${ARCH}-test
+          Version: ${VERSION}
+          Architecture: ${ARCH}
+          Maintainer: curtistinkers
+          Description: A ${SECTION} ${ARCH} test package for ${DIST^}.
+          EOF
+          dpkg-deb --build /tmp/${DIST}-${SECTION}-${ARCH} pool/${DIST}/${SECTION}/${DIST}-${SECTION}-${ARCH}-test_${VERSION}_${ARCH}.deb
+
+      - name: Create Proxmox VE 8 main all Package
+        run: |
+          export DIST="pve8"
+          export SECTION="main"
+          export ARCH="all"
+          export VERSION="1.0"
+
+          mkdir -p /tmp/${DIST}-${SECTION}-${ARCH}/DEBIAN
+          cat << EOF > /tmp/${DIST}-${SECTION}-${ARCH}/DEBIAN/control
+          Package: ${DIST}-${SECTION}-${ARCH}-test
+          Version: ${VERSION}
+          Architecture: ${ARCH}
+          Maintainer: curtistinkers
+          Description: A ${SECTION} ${ARCH} test package for ${DIST^^}.
+          EOF
+          dpkg-deb --build /tmp/${DIST}-${SECTION}-${ARCH} pool/${DIST}/${SECTION}/${DIST}-${SECTION}-${ARCH}-test_${VERSION}_${ARCH}.deb
+
+      - name: Create Proxmox VE 8 main amd64 Package
+        run: |
+          export DIST="pve8"
+          export SECTION="main"
+          export ARCH="amd64"
+          export VERSION="2.0"
+
+          mkdir -p /tmp/${DIST}-${SECTION}-${ARCH}/DEBIAN
+          cat << EOF > /tmp/${DIST}-${SECTION}-${ARCH}/DEBIAN/control
+          Package: ${DIST}-${SECTION}-${ARCH}-test
+          Version: ${VERSION}
+          Architecture: ${ARCH}
+          Maintainer: curtistinkers
+          Description: A ${SECTION} ${ARCH} test package for ${DIST^^}.
+          EOF
+          dpkg-deb --build /tmp/${DIST}-${SECTION}-${ARCH} pool/${DIST}/${SECTION}/${DIST}-${SECTION}-${ARCH}-test_${VERSION}_${ARCH}.deb
+
+      - name: Create Proxmox VE 8 non-free all Package
+        run: |
+          export DIST="pve8"
+          export SECTION="non-free"
+          export ARCH="all"
+          export VERSION="3.0"
+
+          mkdir -p /tmp/${DIST}-${SECTION}-${ARCH}/DEBIAN
+          cat << EOF > /tmp/${DIST}-${SECTION}-${ARCH}/DEBIAN/control
+          Package: ${DIST}-${SECTION}-${ARCH}-test
+          Version: ${VERSION}
+          Architecture: ${ARCH}
+          Maintainer: curtistinkers
+          Description: A ${SECTION} ${ARCH} test package for ${DIST^^}.
+          EOF
+          dpkg-deb --build /tmp/${DIST}-${SECTION}-${ARCH} pool/${DIST}/${SECTION}/${DIST}-${SECTION}-${ARCH}-test_${VERSION}_${ARCH}.deb
+
+      - name: Create Proxmox VE 8 non-free amd64 Package
+        run: |
+          export DIST="pve8"
+          export SECTION="non-free"
+          export ARCH="amd64"
+          export VERSION="4.0"
+
+          mkdir -p /tmp/${DIST}-${SECTION}-${ARCH}/DEBIAN
+          cat << EOF > /tmp/${DIST}-${SECTION}-${ARCH}/DEBIAN/control
+          Package: ${DIST}-${SECTION}-${ARCH}-test
+          Version: ${VERSION}
+          Architecture: ${ARCH}
+          Maintainer: curtistinkers
+          Description: A ${SECTION} ${ARCH} test package for ${DIST^^}.
+          EOF
+          dpkg-deb --build /tmp/${DIST}-${SECTION}-${ARCH} pool/${DIST}/${SECTION}/${DIST}-${SECTION}-${ARCH}-test_${VERSION}_${ARCH}.deb
+
       - name: Generate apt-ftparchive
-        run: |
-          apt-ftparchive generate .github/apt/apt-ftparchive.conf
+        run: apt-ftparchive generate .github/apt/apt-ftparchive.conf
 
-      - name: Index Debian Trixie Test Packages
-        run: |
-          apt-ftparchive -c .github/apt/trixie-release.conf release dists/trixie > dists/trixie/Release
+      - name: Index Debian Trixie Packages
+        run: apt-ftparchive -c .github/apt/trixie-release.conf release dists/trixie > dists/trixie/Release
 
-      # - name: Index Proxmox VE 9 Test Packages
-      #   run: |
-      #     apt-ftparchive -c .github/apt/pve9-release.conf release dists/pve9 > dists/pve9/Release
+      - name: Index Debian Bookworm Packages
+        run: apt-ftparchive -c .github/apt/bookworm-release.conf release dists/bookworm > dists/bookworm/Release
+
+      - name: Index Proxmox VE 9 Packages
+        run: apt-ftparchive -c .github/apt/pve9-release.conf release dists/pve9 > dists/pve9/Release
+
+      - name: Index Proxmox VE 8 Packages
+        run: apt-ftparchive -c .github/apt/pve8-release.conf release dists/pve8 > dists/pve8/Release
 
       - name: Verify Generated Package Layout Structure
         run: |
@@ -142,14 +349,14 @@ jobs:
       - name: Output Generated Trixie Release Manifest File for Review
         run: cat dists/trixie/Release
 
-      # - name: Output Generated Proxmox VE 9 Release Manifest File for Review
-      #   run: cat dists/pve9/Release
+      - name: Output Generated Proxmox VE 9 Release Manifest File for Review
+        run: cat dists/pve9/Release
 
-      # - name: Output Generated Bookworm Release Manifest File for Review
-      #   run: cat dists/bookworm/Release
+      - name: Output Generated Bookworm Release Manifest File for Review
+        run: cat dists/bookworm/Release
 
-      # - name: Output Generated Proxmox VE 8 Release Manifest File for Review
-      #   run: cat dists/pve8/Release
+      - name: Output Generated Proxmox VE 8 Release Manifest File for Review
+        run: cat dists/pve8/Release
 
       - name: Archive Test Index Output Tree
         uses: actions/upload-artifact@v4
