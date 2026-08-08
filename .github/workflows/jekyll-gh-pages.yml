@@ -56,15 +56,18 @@ jobs:
           source: ./
           destination: ./_site
 
-      - name: Inject Indexer Workflow into Website Build
+      - name: Assemble Combined Staging Tree
         run: |
-          # 1. Re-create the hidden target directory structure inside the built site folder
-          mkdir -p ./_site/.github/workflows
+          # 1. Create a fresh, unrestricted local directory structure
+          mkdir -p ./staging_area/.github/workflows
           
-          # 2. Re-download a clean copy of your indexer file from your local tree 
-          #    or copy it over so it persists when peaceiris pushes to gh-pages
-          if [ -f ".github/workflows/apt-indexer.yml" ]; then
-            cp .github/workflows/apt-indexer.yml ./_site/.github/workflows/apt-indexer.yml
+          # 2. Copy the compiled HTML assets out of the locked Jekyll directory
+          cp -r ./_site/* ./staging_area/
+          
+          # 3. Securely clone all workflow files into the open staging path
+          if [ -d ".github/workflows" ]; then
+            mkdir -p ./staging_area/.github/workflows
+            cp -r .github/workflows/* ./staging_area/.github/workflows/
           fi
 
       - name: Check-in Compiled Files to gh-pages Branch
