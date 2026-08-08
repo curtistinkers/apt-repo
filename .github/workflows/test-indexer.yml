@@ -30,19 +30,53 @@ jobs:
           mkdir -p pool/main
           mkdir -p cache
 
-      - name: Create Test Debian Trixie Package Artifacts
+      - name: Create Real Valid Debian Trixie Packages
         run: |
-          echo "Simulating Trixie package indexing environment..."
-          # This creates a zero-byte empty text file ending in .deb so apt-ftparchive has something to evaluate
-          touch pool/main/test-trixie-universal-config_1.0_all.deb
-          touch pool/main/test-trixie-amd64-config_1.0_amd64.deb
+          echo "Building authentic minimal Trixie universal configuration package..."
+          mkdir -p /tmp/universal/DEBIAN
+          cat << 'EOF' > /tmp/universal/DEBIAN/control
+          Package: test-trixie-universal-config
+          Version: 1.0
+          Architecture: all
+          Maintainer: curtistinkers
+          Description: A real valid universal configuration package layout
+          EOF
+          dpkg-deb --build /tmp/universal pool/main/test-trixie-universal-config_1.0_all.deb
 
-      - name: Create Test Proxmox VE 9 Package Artifacts
+          echo "Building authentic minimal Trixie amd64 compiled tool package..."
+          mkdir -p /tmp/amd64/DEBIAN
+          cat << 'EOF' > /tmp/amd64/DEBIAN/control
+          Package: test-trixie-amd64-package
+          Version: 1.0
+          Architecture: amd64
+          Maintainer: curtistinkers
+          Description: A real valid compiled amd64 target tool layout
+          EOF
+          dpkg-deb --build /tmp/amd64 pool/main/test-trixie-amd64-package_1.0_amd64.deb
+
+      - name: Create Real Valid Proxmox VE 9 Packages
         run: |
-          echo "Simulating Proxmox VE 9 package indexing environment..."
-          # This creates a zero-byte empty text file ending in .deb so apt-ftparchive has something to evaluate
-          touch pool/main/test-pve9-universal-config_1.0_all.deb
-          touch pool/main/test-pve9-amd64-config_1.0_amd64.deb
+          echo "Building authentic minimal Proxmox universal configuration package..."
+          mkdir -p /tmp/universal/DEBIAN
+          cat << 'EOF' > /tmp/universal/DEBIAN/control
+          Package: test-trixie-universal-config
+          Version: 1.0
+          Architecture: all
+          Maintainer: curtistinkers
+          Description: A real valid universal configuration package layout
+          EOF
+          dpkg-deb --build /tmp/universal pool/main/test-pve9-universal-config_1.0_all.deb
+
+          echo "Building authentic minimal Proxmox tool package..."
+          mkdir -p /tmp/pve/DEBIAN
+          cat << 'EOF' > /tmp/pve/DEBIAN/control
+          Package: test-pve9-tool
+          Version: 1.0
+          Architecture: amd64
+          Maintainer: curtistinkers
+          Description: A real valid specialized Proxmox compiled utility
+          EOF
+          dpkg-deb --build /tmp/pve pool/main/test-pve9-tool_1.0_amd64.deb
       
       - name: Generate apt-ftparchive
         run: |
