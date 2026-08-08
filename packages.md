@@ -29,7 +29,7 @@ hosted across our infrastructure matrices.
     </tr>
     {% else %}
     <tr>
-      <td colspan="5" text-align: center; font-style: italic;">
+      <td colspan="5" style="text-align: center; font-style: italic;">
         No software packages catalogued in the repository yet.
       </td>
     </tr>
