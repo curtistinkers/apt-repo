@@ -1,0 +1,84 @@
+name: TEST REPO INDEXER
+
+on:
+  workflow_dispatch: # Allows you to manually trigger this test run from the Actions tab
+
+jobs:
+  test-index:
+    name: Run Dry Run apt-ftparchive Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      # ---------------------------------------------------------------------
+      # STEP 1: PROVISION SYSTEM LOGIC
+      # ---------------------------------------------------------------------
+      - name: Update System Repositories
+        run: sudo apt-get update
+
+      - name: Install apt-utils Utilities
+        run: sudo apt-get install -y dpkg-dev apt-utils
+
+      # ---------------------------------------------------------------------
+      # STEP 2: SETUP EXPERIMENTAL WORKSPACE DIRECTORIES
+      # ---------------------------------------------------------------------
+      - name: Initialize Dummy Package Pools
+        run: |
+          mkdir -p pool/trixie
+          mkdir -p pool/pve9
+          mkdir -p dists/trixie/main/binary-amd64 dists/trixie/main/binary-all
+          mkdir -p dists/pve9/main/binary-amd64 dists/pve9/main/binary-all
+
+      - name: Create Test Debian Package Artifacts
+        run: |
+          echo "Simulating package indexing environment..."
+          # This creates a zero-byte empty text file ending in .deb so apt-ftparchive has something to evaluate
+          touch pool/trixie/test-universal-config_1.0_all.deb
+          touch pool/pve9/test-proxmox-tool_1.0_amd64.deb
+
+      # ---------------------------------------------------------------------
+      # STEP 3: EXECUTE DIRECTORY SWEEPS
+      # ---------------------------------------------------------------------
+      - name: Index Trixie Universal Configurations
+        run: |
+          apt-ftparchive -c .github/apt/apt-ftparchive.conf packages pool/trixie/ "*_all.deb" > dists/trixie/main/binary-all/Packages
+          gzip -9kc dists/trixie/main/binary-all/Packages > dists/trixie/main/binary-all/Packages.gz
+
+      - name: Index Trixie AMD64 Binaries
+        run: |
+          apt-ftparchive -c .github/apt/apt-ftparchive.conf packages pool/trixie/ "*_amd64.deb" > dists/trixie/main/binary-amd64/Packages
+          gzip -9kc dists/trixie/main/binary-amd64/Packages > dists/trixie/main/binary-amd64/Packages.gz
+
+      - name: Index Proxmox Universal Configurations
+        run: |
+          apt-ftparchive -c .github/apt/apt-ftparchive.conf packages pool/trixie/ pool/pve9/ "*_all.deb" > dists/pve9/main/binary-all/Packages
+          gzip -9kc dists/pve9/main/binary-all/Packages > dists/pve9/main/binary-all/Packages.gz
+
+      - name: Index Proxmox AMD64 Binaries
+        run: |
+          apt-ftparchive -c .github/apt/apt-ftparchive.conf packages pool/trixie/ pool/pve9/ "*_amd64.deb" > dists/pve9/main/binary-amd64/Packages
+          gzip -9kc dists/pve9/main/binary-amd64/Packages > dists/pve9/main/binary-amd64/Packages.gz
+
+      # ---------------------------------------------------------------------
+      # STEP 4: METADATA SUITE VERIFICATION FILE RUNS
+      # ---------------------------------------------------------------------
+      - name: Generate Suite Release Definitions
+        run: |
+          apt-ftparchive -c .github/apt/trixie-release.conf release dists/trixie/ > dists/trixie/Release
+          apt-ftparchive -c .github/apt/pve9-release.conf release dists/pve9/ > dists/pve9/Release
+
+      # ---------------------------------------------------------------------
+      # STEP 5: VERIFY OUTPUTS ARE VISIBLE IN LOGS
+      # ---------------------------------------------------------------------
+      - name: Output Generated Proxmox Release Manifest File for Review
+        run: cat dists/pve9/Release
+
+      # ---------------------------------------------------------------------
+      # STEP 6: SAVE AS DOWNLOADABLE ARTIFACT
+      # ---------------------------------------------------------------------
+      - name: Archive Test Index Output Tree
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-apt-repository-layout
+          path: dists/
