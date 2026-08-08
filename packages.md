@@ -11,9 +11,9 @@ hosted across our infrastructure matrices.
 
 ## Packages by Suite
 
----
-
 {% for group in suite_groups %}
+
+---
 
 ### {{ group.name }}
 
@@ -53,7 +53,4 @@ hosted across our infrastructure matrices.
   </tbody>
 </table>
 <!-- markdownlint-enable no-inline-html -->
-
----
-
 {% endfor %}
