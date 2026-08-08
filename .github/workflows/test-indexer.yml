@@ -11,6 +11,13 @@ jobs:
       - name: Checkout Source Code
         uses: actions/checkout@v4
 
+      - name: Cache Core Bootstrap Packages
+        id: cache-bootstrap
+        uses: actions/cache@v4
+        with:
+          path: /var/cache/apt/archives
+          key: ${{ runner.os }}-test-indexer-bootstrap
+
       - name: Update System Repositories
         run: sudo apt-get update
 
@@ -43,11 +50,11 @@ jobs:
 
       - name: Index Debian Trixie Test Packages
         run: |
-          apt-ftparchive -c .github/apt/trixie.conf release dists/trixie > dists/trixie/Release
+          apt-ftparchive -c .github/apt/trixie-release.conf release dists/trixie > dists/trixie/Release
 
       - name: Index Proxmox VE 9 Test Packages
         run: |
-          apt-ftparchive -c .github/apt/pve9.conf release dists/pve9 > dists/pve9/Release
+          apt-ftparchive -c .github/apt/pve9-release.conf release dists/pve9 > dists/pve9/Release
 
       - name: Output Generated Trixie Release Manifest File for Review
         run: cat dists/trixie/Release
