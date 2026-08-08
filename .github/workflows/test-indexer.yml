@@ -323,16 +323,18 @@ jobs:
           EOF
           dpkg-deb --build /tmp/${DIST}-${SECTION}-${ARCH} pool/${DIST}/${SECTION}/${DIST}-${SECTION}-${ARCH}-test_${VERSION}_${ARCH}.deb
 
-      - name: Compile Automated Jekyll Package Data Directory
+      - name: Create Directory for Automated Jekyll Package Data
+        run: mkdir -p _data
+
+      - name: Compile Automated Jekyll Package Data
         run: |
           echo "Initializing website metadata generation loop..."
-          mkdir -p _data
           echo "packages:" > _data/packages.yml
           
           # Recursively find every real valid compiled package file inside your pool/ tree
           if [ -d "pool" ]; then
             find pool/ -name "*.deb" | sort | while read -r deb; do
-              echo "Extracting telemetry attributes from: $deb"
+              echo "Extracting package attributes from: $deb" >&2
               
               # Parse the internal control headers using standard system dpkg utilities
               pkg_name=$(dpkg-deb -f "$deb" Package)
@@ -344,13 +346,13 @@ jobs:
               pkg_suite=$(echo "$deb" | cut -d'/' -f2)
               pkg_comp=$(echo "$deb" | cut -d'/' -f3)
               
-              # Append the metadata block with strict indentation formatting into the Jekyll database
-              echo "  - name: \"$pkg_name\"" >> _data/packages.yml
-              echo "    version: \"$pkg_ver\"" >> _data/packages.yml
-              echo "    suite: \"$pkg_suite\"" >> _data/packages.yml
-              echo "    component: \"$pkg_comp\"" >> _data/packages.yml
-              echo "    description: \"$pkg_desc\"" >> _data/packages.yml
-            done
+              # Grouped print statements for cleaner internal code execution loops
+              echo "  - name: \"$pkg_name\""
+              echo "    version: \"$pkg_ver\""
+              echo "    suite: \"$pkg_suite\""
+              echo "    component: \"$pkg_comp\""
+              echo "    description: \"$pkg_desc\""
+            done >> _data/packages.yml
           else
             echo "Pool directory not found. Skipping data generation."
           fi
