@@ -33,23 +33,23 @@ jobs:
       - name: Create Trixie pool folders
         run: mkdir -p pool/trixie/{main,non-free}
       
-      # - name: Create Proxmox VE 9 dist tree Folders
-      #   run:  mkdir -p dists/pve9/{main,non-free}/{binary-all,binary-amd64,source}
+      - name: Create Proxmox VE 9 dist tree Folders
+        run:  mkdir -p dists/pve9/{main,non-free}/{binary-all,binary-amd64,source}
 
-      # - name: Create Proxmox VE 9 pool folders
-      #   run: mkdir -p pool/pve9/{main,non-free}
+      - name: Create Proxmox VE 9 pool folders
+        run: mkdir -p pool/pve9/{main,non-free}
 
-      # - name: Create Bookworm dist tree Folders
-      #   run:  mkdir -p dists/bookworm/{main,non-free}/{binary-all,binary-amd64,source}
+      - name: Create Bookworm dist tree Folders
+        run:  mkdir -p dists/bookworm/{main,non-free}/{binary-all,binary-amd64,source}
 
-      # - name: Create Bookworm pool folders
-      #   run: mkdir -p pool/bookworm/{main,non-free}
+      - name: Create Bookworm pool folders
+        run: mkdir -p pool/bookworm/{main,non-free}
       
-      # - name: Create Proxmox VE 8 dist tree Folders
-      #   run:  mkdir -p dists/pve8/{main,non-free}/{binary-all,binary-amd64,source}
+      - name: Create Proxmox VE 8 dist tree Folders
+        run:  mkdir -p dists/pve8/{main,non-free}/{binary-all,binary-amd64,source}
 
-      # - name: Create Proxmox VE 8 pool folders
-      #   run: mkdir -p pool/pve8/{main,non-free}
+      - name: Create Proxmox VE 8 pool folders
+        run: mkdir -p pool/pve8/{main,non-free}
 
       - name: Create Trixie main all Package
         run: |
