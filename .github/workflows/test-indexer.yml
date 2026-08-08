@@ -5,7 +5,7 @@ on:
 
 jobs:
   test-index:
-    name: Run Dry Run apt-ftparchive Tests
+    name: Dry Run apt-ftparchive Tests
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Source Code
@@ -43,11 +43,11 @@ jobs:
 
       - name: Index Debian Trixie Test Packages
         run: |
-          apt-ftparchive -c trixie.conf release debian/dists/trixie > debian/dists/trixie/Release
+          apt-ftparchive -c trixie.conf release dists/trixie > dists/trixie/Release
 
       - name: Index Proxmox VE 9 Test Packages
         run: |
-          apt-ftparchive -c pve9.conf release debian/dists/pve9 > debian/dists/pve9/Release
+          apt-ftparchive -c pve9.conf release dists/pve9 > dists/pve9/Release
 
       - name: Output Generated Trixie Release Manifest File for Review
         run: cat dists/trixie/Release
