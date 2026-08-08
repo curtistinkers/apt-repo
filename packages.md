@@ -7,44 +7,11 @@ title: Package Directory
 Browse the custom configuration sets, tools, and package definitions actively
 hosted across our infrastructure matrices.
 
-<!-- markdownlint-disable no-inline-html -->
-<!-- <table>
-  <thead>
-    <tr>
-      <th>Target Suite</th>
-      <th>Component</th>
-      <th>Package Identifier</th>
-      <th>Version</th>
-      <th>Description</th>
-    </tr>
-  </thead>
-  <tbody>
-    {% for pkg in site.data.packages.packages %}
-    <tr>
-      <td><code>{{ pkg.suite }}</code></td>
-      <td><em>{{ pkg.component }}</em></td>
-      <td>
-        <a href="/pool/{{ pkg.suite }}/{{ pkg.component }}/{{ pkg.file }}">
-          <strong>{{ pkg.name }}</strong>
-        </a>
-      </td>
-      <td><code>{{ pkg.version }}</code></td>
-      <td>{{ pkg.description }}</td>
-    </tr>
-    {% else %}
-    <tr>
-      <td colspan="5" style="text-align: center; font-style: italic;">
-        No software packages catalogued in the repository yet.
-      </td>
-    </tr>
-    {% endfor %}
-  </tbody>
-</table> -->
-<!-- markdownlint-enable no-inline-html -->
-
 {% assign suite_groups = site.data.packages.packages | group_by: "suite" %}
 
 ## Packages by Suite
+
+---
 
 {% for group in suite_groups %}
 
@@ -54,16 +21,15 @@ hosted across our infrastructure matrices.
 <table>
   <thead>
     <tr>
-      <th>Component</th>
       <th>Package Identifier</th>
       <th>Version</th>
       <th>Description</th>
+      <th>Component</th>
     </tr>
   </thead>
   <tbody>
     {% for pkg in group.items %}
     <tr>
-      <td><em>{{ pkg.component }}</em></td>
       <td>
         <a href="/pool/{{ pkg.suite }}/{{ pkg.component }}/{{ pkg.file }}">
           <strong>{{ pkg.name }}</strong>
@@ -71,6 +37,7 @@ hosted across our infrastructure matrices.
       </td>
       <td><code>{{ pkg.version }}</code></td>
       <td>{{ pkg.description }}</td>
+      <td><em>{{ pkg.component }}</em></td>
     </tr>
     {% endfor %}
   </tbody>
@@ -86,5 +53,7 @@ hosted across our infrastructure matrices.
   </tbody>
 </table>
 <!-- markdownlint-enable no-inline-html -->
+
+---
 
 {% endfor %}
