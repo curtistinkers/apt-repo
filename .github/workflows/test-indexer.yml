@@ -131,6 +131,14 @@ jobs:
       #   run: |
       #     apt-ftparchive -c .github/apt/pve9-release.conf release dists/pve9 > dists/pve9/Release
 
+      - name: Verify Generated Package Layout Structure
+        run: |
+          echo "=== Group A: Verification of Physical .deb Files on Disk ==="
+          find pool/ -type f -name "*.deb"
+          
+          echo "=== Group B: Inspecting Non-Zero Packages Text Index Outputs ==="
+          find dists/ -type f -name "Packages" -exec echo "--- File: {} ---" \; -exec cat {} \;
+  
       - name: Output Generated Trixie Release Manifest File for Review
         run: cat dists/trixie/Release
 
@@ -147,4 +155,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: test-apt-repository-layout
-          path: dists/
+          path: .
