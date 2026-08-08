@@ -1,0 +1,8 @@
+# Jekyll temporary build folders
+/_site/
+/.jekyll-cache/
+/.jekyll-metadata
+
+# OS metadata files
+.DS_Store
+Thumbs.db
