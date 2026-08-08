@@ -405,13 +405,19 @@ jobs:
         uses: actions/jekyll-build-pages@v1
         with:
           source: ./
-          destination: ./_site # Keep the default destination to prevent action errors
+          destination: ./_site
 
       - name: Transfer Web Assets to Test Subdirectory
         run: |
           echo "Moving compiled HTML layouts to the static/ directory..."
           mkdir -p static
           cp -r _site/* static/
+
+      - name:
+        run: |
+          # This replaces /assets/ with ./assets/ inside the built files so local files find CSS
+          find static/ -type f -name "*.html" -exec sed -i 's|href="/|href="./|g' {} \;
+          find static/ -type f -name "*.html" -exec sed -i 's|src="/|src="./|g' {} \;
           
       - name: Verify Staging Web Assets Exist on Disk
         run: |
