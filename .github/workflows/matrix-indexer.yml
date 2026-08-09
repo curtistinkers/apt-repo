@@ -71,21 +71,31 @@ jobs:
         run: |
           chmod +x .github/apt/scripts/get-pretty-name.sh
           SUITE_NAME=$(.github/apt/scripts/get-pretty-name.sh "${{ matrix.suite }}" '${{ env.REPO_SUITES }}')
-          echo "SUITE_PRETTY_NAME=${SUITE_NAME}" >> "$GITHUB_ENV"
+          echo "SUITE_PRETTY_NAME=${SUITE_NAME}" >> "${GITHUB_ENV}"
 
       - name: Initialize Component Pool Target Directory
         run: mkdir -p "pool/${{ matrix.suite }}/${{ matrix.component }}"
 
       - name: Determine Version Number
         run: |
-          [ "${{ matrix.architecture }}" = "all" ] && [ "${{ matrix.component }}" = "main" ] && VERSION="1.0"
-          [ "${{ matrix.architecture }}" = "amd64" ] && [ "${{ matrix.component }}" = "main" ] && VERSION="2.0"
-          [ "${{ matrix.architecture }}" = "all" ] && [ "${{ matrix.component }}" = "non-free" ] && VERSION="3.0"
-          [ "${{ matrix.architecture }}" = "amd64" ] && [ "${{ matrix.component }}" = "non-free" ] && VERSION="4.0"
+          # Use an explicit if/elif/else structure so the script always exits successfully with 0
+          if [ "${{ matrix.architecture }}" = "all" ] && [ "${{ matrix.component }}" = "main" ]; then
+            TARGET_VERSION="1.0"
+          elif [ "${{ matrix.architecture }}" = "amd64" ] && [ "${{ matrix.component }}" = "main" ]; then
+            TARGET_VERSION="2.0"
+          elif [ "${{ matrix.architecture }}" = "all" ] && [ "${{ matrix.component }}" = "non-free" ]; then
+            TARGET_VERSION="3.0"
+          elif [ "${{ matrix.architecture }}" = "amd64" ] && [ "${{ matrix.component }}" = "non-free" ]; then
+            TARGET_VERSION="4.0"
+          else
+            TARGET_VERSION="0.1"
+          fi
+          echo "VERSION=${TARGET_VERSION}" >> "${GITHUB_ENV}"
 
       - name: Compile Single Atomic Package Variation
         run: |
-          echo "WORKSPACE_DIR=/tmp/${{ matrix.suite }}-${{ matrix.component }}-${{ matrix.architecture }}" >> "$GITHUB_ENV"
+          TARGET_WORKSPACE="/tmp/${{ matrix.suite }}-${{ matrix.component }}-${{ matrix.architecture }}"
+          echo "WORKSPACE_DIR=${TARGET_WORKSPACE}" >> "${GITHUB_ENV}"
           mkdir -p "${WORKSPACE_DIR}/DEBIAN"
 
           cat << EOF > "${WORKSPACE_DIR}/DEBIAN/control"
@@ -125,7 +135,7 @@ jobs:
         run: |
           chmod +x .github/apt/scripts/get-pretty-name.sh
           SUITE_NAME=$(.github/apt/scripts/get-pretty-name.sh "${{ matrix.suite }}" '${{ env.REPO_SUITES }}')
-          echo "SUITE_PRETTY_NAME=${SUITE_NAME}" >> "$GITHUB_ENV"
+          echo "SUITE_PRETTY_NAME=${SUITE_NAME}" >> "${GITHUB_ENV}"
 
       - name: Restore Specific Package Suite Pools
         uses: actions/download-artifact@v4
