@@ -7,8 +7,8 @@ url: "https://apt.curtistinkers.com"
 baseurl: ""
 
 exclude:
-  - dists/
-  - pool/
+  - .github/
+  - cache/
   - CNAME
   - LICENSE.md
   - README.md
