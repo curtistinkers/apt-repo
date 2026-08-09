@@ -199,7 +199,7 @@ jobs:
   # JOB 3: SECURE CRYPTOGRAPHIC GPG SIGNING BLOCK
   # =========================================================================
   sign-repository:
-    name: Signed Repository Index for ${{ matrix.suite }}
+    name: Sign Repository Index for ${{ matrix.suite }}
     runs-on: ubuntu-latest
     needs: [bootstrap, index-repository] # Waits for Job 2 to finish generating text files
     strategy:
