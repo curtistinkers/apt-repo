@@ -4,4 +4,4 @@ APT::FTPArchive::Release::Suite "${SUITE}";
 APT::FTPArchive::Release::Codename "${SUITE}";
 APT::FTPArchive::Release::Architectures "${ARCHITECTURES}";
 APT::FTPArchive::Release::Components "${COMPONENTS}";
-APT::FTPArchive::Release::Description "Configuration and tools for ${PRETTY_NAME}.";
+APT::FTPArchive::Release::Description "Configuration and tools for ${SUITE_PRETTY_NAME}.";

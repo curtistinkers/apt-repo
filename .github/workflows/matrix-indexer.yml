@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
 
 env:
-  REPO_SUITES: '["bookworm", "trixie", "pve8", "pve9"]'  # Array string for Job 1's matrix strategy
+  REPO_SUITES: '["bookworm", "trixie", "pve8", "pve9", "resolute", "noble", "focal"]'  # Array string for Job 1's matrix strategy
   REPO_COMPONENTS: '["main", "non-free"]'                 # Array string for Job 1's matrix strategy
   REPO_ARCHITECTURES: '["all", "amd64"]'                # Array string for Job 1's matrix strategy
 
@@ -43,7 +43,7 @@ jobs:
           } >> "$GITHUB_OUTPUT"
 
   # =========================================================================
-  # JOB 1: NATIVE 16-WAY ATOMIC PARALLEL MATRIX PACKAGE COMPILATION
+  # JOB 1: ATOMIC PARALLEL MATRIX PACKAGE COMPILATION
   # =========================================================================
   build-packages:
     name: Compile ${{ matrix.suite }}-${{ matrix.component }}-${{ matrix.architecture }}
@@ -63,6 +63,12 @@ jobs:
           path: pool/${{ matrix.suite }}/${{ matrix.component }}/
           # The key binds explicitly to this precise matrix slot coordination
           key: deb-cache-${{ matrix.suite }}-${{ matrix.component }}-${{ matrix.architecture }}
+      
+      - name: Compute Target Distribution Pretty Name
+        run: |
+          chmod +x .github/apt/scripts/get-pretty-name.sh
+          SUITE_NAME=$(.github/apt/scripts/get-pretty-name.sh "${{ matrix.suite }}" '${{ env.REPO_SUITES }}')
+          echo "SUITE_PRETTY_NAME=${SUITE_NAME}" >> "$GITHUB_ENV"
 
       - name: Initialize Component Pool Target Directory
         run: mkdir -p "pool/${{ matrix.suite }}/${{ matrix.component }}"
@@ -77,26 +83,14 @@ jobs:
 
           # Sandbox the build workspace to prevent file collisions
           WORKSPACE_DIR="/tmp/${{ matrix.suite }}-${{ matrix.component }}-${{ matrix.architecture }}"
-
-          export SUITE="${{ matrix.suite }}"
-
-          # 1. Determine pretty name from distro machine name.
-          if [[ "${SUITE}" == pve* ]]; then
-            # Capitalizes the 'pve' string prefix cleanly to Proxmox VE
-            export PRETTY_NAME="Proxmox VE ${SUITE#pve}"
-          else
-            # Capitalizes the first letter of the Debian codename on the fly
-            export PRETTY_NAME="Debian ${SUITE^}"
-          fi
-
-           mkdir -p "${WORKSPACE_DIR}/DEBIAN"
+          mkdir -p "${WORKSPACE_DIR}/DEBIAN"
 
           cat << EOF > "${WORKSPACE_DIR}/DEBIAN/control"
           Package: ${{ matrix.suite }}-${{ matrix.component }}-${{ matrix.architecture }}-test
           Version: ${VERSION}
           Architecture: ${{ matrix.architecture }}
           Maintainer: curtistinkers
-          Description: A ${{ matrix.component }} ${{ matrix.architecture }} test package for ${PRETTY_NAME}.
+          Description: A ${{ matrix.component }} ${{ matrix.architecture }} test package for ${SUITE_PRETTY_NAME}.
           EOF
 
           # Build directly into the precise folder track matching our layout
@@ -123,6 +117,12 @@ jobs:
     steps:
       - name: Checkout Source Code
         uses: actions/checkout@v4
+
+      - name: Compute Target Distribution Pretty Name
+        run: |
+          chmod +x .github/apt/scripts/get-pretty-name.sh
+          SUITE_NAME=$(.github/apt/scripts/get-pretty-name.sh "${{ matrix.suite }}" '${{ env.REPO_SUITES }}')
+          echo "SUITE_PRETTY_NAME=${SUITE_NAME}" >> "$GITHUB_ENV"
 
       - name: Restore Specific Package Suite Pools
         uses: actions/download-artifact@v4
@@ -177,15 +177,6 @@ jobs:
           export SUITE="${{ matrix.suite }}"
           export COMPONENTS="${{ needs.bootstrap.outputs.components_string }}"
           export ARCHITECTURES="${{ needs.bootstrap.outputs.architectures_string }}"
-
-          # 1. Determine pretty name from suite machine name.
-          if [[ "${SUITE}" == pve* ]]; then
-            # Capitalizes the 'pve' string prefix cleanly to Proxmox VE
-            export PRETTY_NAME="Proxmox VE ${SUITE#pve}"
-          else
-            # Capitalizes the first letter of the Debian codename on the fly
-            export PRETTY_NAME="Debian ${SUITE^}"
-          fi
         
           # 2. Inject environment attributes directly into your new single template file
           # and save it as a temporary live configuration file for this specific matrix runner
