@@ -66,11 +66,11 @@ jobs:
       - name: Checkout Source Code
         uses: actions/checkout@v4
 
-      - name: Restore Multi-Suite Package Pools
+      - name: Restore Specific Package Suite Pools
         uses: actions/download-artifact@v4
         with:
-          pattern: package-*
-          path: ./
+          pattern: package-${{ matrix.dist }}-*
+          path: pool/${{ matrix.dist }}/
           merge-multiple: true
 
       - name: Provision Apt Indexing Tools
@@ -124,7 +124,7 @@ jobs:
       - name: Stash Signed Metadata Indexes
         uses: actions/upload-artifact@v4
         with:
-          name: intermediate-signed-indexes-${{ matrix.dist }}
+          name: indexes-${{ matrix.dist }}
           path: dists/${{ matrix.dist }}/
 
   # =========================================================================
@@ -142,14 +142,15 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           pattern: package-*
-          path: ./
+          path: pool/
           merge-multiple: true
 
       - name: Re-instate All Signed Repository Indexes
         uses: actions/download-artifact@v4
         with:
-          pattern: intermediate-signed-indexes-*
+          pattern: indexes-*
           path: dists/
+          merge-multiple: true
 
       - name: Setup Pages Infrastructure
         uses: actions/configure-pages@v5
