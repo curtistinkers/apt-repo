@@ -256,7 +256,7 @@ jobs:
   # JOB 4: COMPILE STATIC FILES WITH JEKYLL 
   # =========================================================================
   build-jekyll:
-    name: Compile Final Jekyll Layouts
+    name: Compile Jekyll Pages
     runs-on: ubuntu-latest
     needs: [bootstrap, build-packages, sign-repository]
     steps:
@@ -294,7 +294,7 @@ jobs:
   # JOB 5: FLATTENED ARCHIVE WORKSPACE LAYOUT CREATION
   # =========================================================================
   archive-creation:
-    name: Package Staging Repositories Workspace
+    name: Create Downloadable Archive
     runs-on: ubuntu-latest
     needs: [build-packages, sign-repository, build-jekyll]
     steps:
@@ -312,7 +312,7 @@ jobs:
           path: dists/
           merge-multiple: true
 
-      - name: Re-instate Compiled Site Pages
+      - name: Retrieve Compiled Site Pages
         uses: actions/download-artifact@v4
         with:
           name: compiled-site
