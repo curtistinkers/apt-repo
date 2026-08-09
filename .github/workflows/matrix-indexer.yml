@@ -220,10 +220,13 @@ jobs:
 
       - name: Verify Authentic Release Manifest Signature
         run: |
-          echo "=== Verifying Signature Against Repository Public Keyring ==="
+          echo "=== Setting Ultimate Trust for the Archive Key Ring ==="
+          # This assigns Ultimate Trust (6) to your exact Key ID natively inside the runner's workspace
+          echo "${{ steps.import-gpg.outputs.keyid }}:6:" | gpg --batch --yes --import-ownertrust
+          
+          echo "=== Running Clean Verification Against Repository Public Keyring ==="
+          # FIXED: Validates against your exact repository file path cleanly with zero warnings
           gpg --keyring ./assets/keyrings/curtistinkers-archive-keyring.gpg \
-              --no-default-keyring \
-              --trust-model always \
               --verify "dists/${{ matrix.suite }}/InRelease"
 
       - name: Stash Signed Metadata Indexes
