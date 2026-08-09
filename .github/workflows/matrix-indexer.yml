@@ -5,7 +5,7 @@ on:
 
 jobs:
   # =========================================================================
-  # JOB 1: PARALLEL TEST PACKAGE BUILDER
+  # JOB 1: NATIVE 16-WAY ATOMIC PARALLEL MATRIX PACKAGE COMPILATION
   # =========================================================================
   build-packages:
     name: Compile ${{ matrix.dist }}-${{ matrix.section }}-${{ matrix.arch }}
@@ -31,13 +31,14 @@ jobs:
           # Sandbox the build workspace to prevent file collisions
           WORKSPACE_DIR="/tmp/${{ matrix.dist }}-${{ matrix.section }}-${{ matrix.arch }}"
           mkdir -p "${WORKSPACE_DIR}/DEBIAN"
+          DIST=${{ matrix.dist }}
 
           cat << EOF > "${WORKSPACE_DIR}/DEBIAN/control"
           Package: ${{ matrix.dist }}-${{ matrix.section }}-${{ matrix.arch }}-test
           Version: ${VERSION}
           Architecture: ${{ matrix.arch }}
           Maintainer: curtistinkers
-          Description: A ${{ matrix.section }} ${{ matrix.arch }} test package for ${{ matrix.dist }}.
+          Description: A ${{ matrix.section }} ${{ matrix.arch }} test package for ${DIST^}.
           EOF
 
           # Build directly into the precise folder track matching our layout
@@ -46,82 +47,17 @@ jobs:
       - name: Stash Isolated Package Asset
         uses: actions/upload-artifact@v4
         with:
-          # FIXED: Your exact unique named key system preserves all 16 tracks perfectly
-          name: intermediate-pool-packages-${{ matrix.dist }}-${{ matrix.section }}-${{ matrix.arch }}
-          # PERFORMANCE TWEAK: Uploading only the specific generated file path 
-          # prevents concurrent workers from uploading empty parent folder structures
+          # Unique named key system preserves all 16 tracks perfectly
+          name: package-${{ matrix.dist }}-${{ matrix.section }}-${{ matrix.arch }}
           path: pool/${{ matrix.dist }}/${{ matrix.section }}/
 
   # =========================================================================
-  # JOB 2: UNIFIED WEBSITE LAYOUT COMPILER
-  # =========================================================================
-  build-jekyll:
-    name: Compile Staging Jekyll Layouts
-    runs-on: ubuntu-latest
-    needs: build-packages
-    steps:
-      - name: Checkout Source Code
-        uses: actions/checkout@v4
-
-      - name: Collect All Parallel Package Artifacts
-        uses: actions/download-artifact@v4
-        with:
-          path: pool/
-          pattern: package-*
-          merge-multiple: true # Combines all matrix package folders back into one pool/ tree
-
-      - name: Setup Pages Infrastructure
-        uses: actions/configure-pages@v5
-
-      - name: Compile Automated Jekyll Package Data
-        run: |
-          mkdir -p _data
-          echo "packages:" > _data/packages.yml
-          
-          if [ -d "pool" ]; then
-            find pool/ -name "*.deb" | sort | while read -r deb; do
-              pkg_name=$(dpkg-deb -f "$deb" Package)
-              pkg_ver=$(dpkg-deb -f "$deb" Version)
-              pkg_desc=$(dpkg-deb -f "$deb" Description | head -n 1)
-              pkg_suite=$(echo "$deb" | cut -d'/' -f2)
-              pkg_comp=$(echo "$deb" | cut -d'/' -f3)
-              pkg_file=$(basename "$deb")
-              
-              echo "  - name: \"$pkg_name\""
-              echo "    version: \"$pkg_ver\""
-              echo "    suite: \"$pkg_suite\""
-              echo "    component: \"$pkg_comp\""
-              echo "    file: \"$pkg_file\""
-              echo "    description: \"$pkg_desc\""
-            done >> _data/packages.yml
-          fi
-
-      - name: Build with Jekyll
-        uses: actions/jekyll-build-pages@v1
-        with:
-          source: ./
-          destination: ./_site
-
-      - name: Transfer Web Assets to Test Subdirectory
-        run: |
-          mkdir -p static
-          cp -r _site/* static/
-          find static/ -type f -name "*.html" -exec sed -i 's|href="/|href="./|g' {} \;
-          find static/ -type f -name "*.html" -exec sed -i 's|src="/|src="./|g' {} \;
-
-      - name: Stash Compiled Static Web Space
-        uses: actions/upload-artifact@v4
-        with:
-          name: intermediate-static-web
-          path: static/
-
-  # =========================================================================
-  # JOB 3: PARALLEL INDEX GENERATION & SECURE CRYPTOGRAPHIC GPG SIGNING
+  # JOB 2: PARALLEL INDEX GENERATION & SECURE CRYPTOGRAPHIC GPG SIGNING
   # =========================================================================
   index-and-sign:
     name: Generate & Sign APT Repo for ${{ matrix.dist }}
     runs-on: ubuntu-latest
-    needs: [build-packages, build-jekyll]
+    needs: build-packages
     strategy:
       matrix:
         # Multiplies into 4 simultaneous parallel builder runners
@@ -133,17 +69,11 @@ jobs:
       - name: Restore Multi-Suite Package Pools
         uses: actions/download-artifact@v4
         with:
-          pattern: intermediate-pool-packages-*
+          pattern: package-*
           path: pool/
           merge-multiple: true
 
-      - name: Restore Static Web Assets
-        uses: actions/download-artifact@v4
-        with:
-          name: intermediate-static-web
-          path: static/
-
-      - name: Provision Debian Indexing Tools
+      - name: Provision Apt Indexing Tools
         run: |
           sudo apt-get update
           sudo apt-get install -y dpkg-dev apt-utils
@@ -189,16 +119,84 @@ jobs:
             --output "dists/${{ matrix.dist }}/Release.gpg" "dists/${{ matrix.dist }}/Release"
 
       - name: Verify Authentic Signature Output Status
-        run: |
-          echo "Checking verification status for suite: ${{ matrix.dist }}"
-          gpg --verify "dists/${{ matrix.dist }}/InRelease"
+        run: gpg --verify "dists/${{ matrix.dist }}/InRelease"
 
-      - name: Archive Completed Suite Layout Matrix
+      - name: Stash Signed Metadata Indexes
         uses: actions/upload-artifact@v4
         with:
-          # Saves each distribution target as a clean standalone artifact for deployment
-          name: finalized-apt-repository-layout-${{ matrix.dist }}
+          name: intermediate-signed-indexes-${{ matrix.dist }}
+          path: dists/${{ matrix.dist }}/
+
+  # =========================================================================
+  # JOB 3: COLLECT MATRIX ASSETS AND COMPILE WEB PLATFORM LAST
+  # =========================================================================
+  build-jekyll:
+    name: Compile Final Jekyll Layouts
+    runs-on: ubuntu-latest
+    needs: [build-packages, index-and-sign]
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Re-instate Complete Package Pools
+        uses: actions/download-artifact@v4
+        with:
+          pattern: package-*
+          path: pool/
+          merge-multiple: true
+
+      - name: Re-instate All Signed Repository Indexes
+        uses: actions/download-artifact@v4
+        with:
+          pattern: intermediate-signed-indexes-*
+          path: dists/
+
+      - name: Setup Pages Infrastructure
+        uses: actions/configure-pages@v5
+
+      - name: Compile Automated Jekyll Package Data
+        run: |
+          mkdir -p _data
+          echo "packages:" > _data/packages.yml
+          if [ -d "pool" ]; then
+            find pool/ -name "*.deb" | sort | while read -r deb; do
+              echo "Extracting package attributes from: $deb" >&2
+              pkg_name=$(dpkg-deb -f "$deb" Package)
+              pkg_ver=$(dpkg-deb -f "$deb" Version)
+              pkg_desc=$(dpkg-deb -f "$deb" Description | head -n 1)
+              pkg_suite=$(echo "$deb" | cut -d'/' -f2)
+              pkg_comp=$(echo "$deb" | cut -d'/' -f3)
+              pkg_file=$(basename "$deb")
+              
+              echo "  - name: \"$pkg_name\""
+              echo "    version: \"$pkg_ver\""
+              echo "    suite: \"$pkg_suite\""
+              echo "    component: \"$pkg_comp\""
+              echo "    file: \"$pkg_file\""
+              echo "    description: \"$pkg_desc\""
+            done >> _data/packages.yml
+          else
+            echo "Pool directory not found. Skipping data generation."
+          fi
+
+      - name: Build with Jekyll
+        uses: actions/jekyll-build-pages@v1
+        with:
+          source: ./
+          destination: ./_site
+
+      - name: Transfer Web Assets to Test Subdirectory
+        run: |
+          mkdir -p static
+          cp -r _site/* static/
+          find static/ -type f -name "*.html" -exec sed -i 's|href="/|href="./|g' {} \;
+          find static/ -type f -name "*.html" -exec sed -i 's|src="/|src="./|g' {} \;
+
+      - name: Archive Finalized System Package Layout Tree
+        uses: actions/upload-artifact@v4
+        with:
+          name: finalized-apt-repository-layout
           path: |
-            dists/${{ matrix.dist }}/
-            pool/${{ matrix.dist }}/
+            dists/
+            pool/
             static/
