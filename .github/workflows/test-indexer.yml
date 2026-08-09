@@ -13,8 +13,8 @@ jobs:
           for DIST in bookworm trixie pve8 pve9; do
             for SECTION in main non-free; do
 
-              echo "Creating directory: pool/${DIST}/{$SECTION}"
-              mkdir -p "pool/${DIST}/{$SECTION}"
+              echo "Creating directory: pool/${DIST}/${SECTION}"
+              mkdir -p "pool/${DIST}/${SECTION}"
 
               for ARCH in all amd64; do
                 # Determine matching version increments for tracking verification
