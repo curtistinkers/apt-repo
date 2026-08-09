@@ -201,7 +201,7 @@ jobs:
           gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
           passphrase: ${{ secrets.GPG_PASSPHRASE }}
 
-      - name: Cryptographically Lock Target Release Manifest
+      - name: Cryptographically Lock ${{ matrix.suite }} Release Manifest
         run: |
           echo "Signing suite release manifests for target: ${{ matrix.suite }}"
           rm -f "dists/${{ matrix.suite }}/InRelease" "dists/${{ matrix.suite }}/Release.gpg"
@@ -218,10 +218,10 @@ jobs:
             --local-user "${{ steps.import-gpg.outputs.keyid }}" \
             --output "dists/${{ matrix.suite }}/Release.gpg" "dists/${{ matrix.suite }}/Release"
 
-      - name: Verify Authentic Signature Output Status
+      - name: Verify Authentic ${{ matrix.suite }} Release Manifest Signature
         run: |
           echo "=== Verifying Signature Against Repository Public Keyring ==="
-          gpg --keyring ./assets/keyrings/curtistinkers-archive-keyring1.gpg \
+          gpg --keyring ./assets/keyrings/curtistinkers-archive-keyring.gpg \
               --no-default-keyring \
               --verify "dists/${{ matrix.suite }}/InRelease"
 
