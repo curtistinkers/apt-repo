@@ -90,8 +90,28 @@ jobs:
       - name: Run apt-ftparchive Index Scan
         run: apt-ftparchive generate .github/apt/apt-ftparchive.conf
 
-      - name: Generate Suite Release Manifest
+      - name: Generate Suite Release Manifest Natively via Template
         run: |
+          echo "Rendering dynamic metadata header profile for: ${{ matrix.dist }}"
+          
+          DIST="${{ matrix.dist }}"
+          
+          # 1. Evaluate target suite prefix names
+          if [[ "$DIST" == pve* ]]; then
+            # Capitalizes the 'pve' string prefix cleanly to Proxmox VE
+            SUITE_NAME="Proxmox VE ${DIST#pve}"
+          else
+            # Capitalizes the first letter of the Debian codename on the fly
+            SUITE_NAME="Debian ${DIST^}"
+          fi
+          
+          DESCRIPTION_NAME="$SUITE_NAME"
+          
+          # 2. Inject environment attributes directly into your new single template file
+          # and save it as a temporary live configuration file for this specific matrix runner
+          envsubst < .github/apt/release.conf.template > .github/apt/${{ matrix.dist }}-release.conf
+          
+          # 3. Execute apt-ftparchive using the freshly compiled dynamic configuration file
           apt-ftparchive -c ".github/apt/${{ matrix.dist }}-release.conf" release "dists/${{ matrix.dist }}" > "dists/${{ matrix.dist }}/Release"
 
       - name: Import GPG Cryptographic Key Ring
