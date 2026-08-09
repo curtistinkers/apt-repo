@@ -253,7 +253,7 @@ jobs:
           path: dists/
 
   # =========================================================================
-  # JOB 3: COLLECT MATRIX ASSETS AND COMPILE WEB PLATFORM LAST
+  # JOB 4: COMPILE STATIC FILES WITH JEKYLL 
   # =========================================================================
   build-jekyll:
     name: Compile Final Jekyll Layouts
@@ -262,13 +262,6 @@ jobs:
     steps:
       - name: Checkout Source Code
         uses: actions/checkout@v4
-
-      - name: Retrieve All Package Pools
-        uses: actions/download-artifact@v4
-        with:
-          pattern: package-*
-          path: pool/
-          merge-multiple: true
 
       - name: Retrieve All Signed Repository Indexes
         uses: actions/download-artifact@v4
@@ -291,16 +284,44 @@ jobs:
           source: ./
           destination: ./_site
 
-      - name: Flatten Web Assets to Workspace Root
-        run: |
-          echo "Unpacking compiled layouts to the root directory..."
-          cp -r _site/* ./
+      - name: Stash Compiled Site Pages
+        uses: actions/upload-artifact@v4
+        with:
+          name: compiled-site
+          path: _site/
   
+  # =========================================================================
+  # JOB 5: FLATTENED ARCHIVE WORKSPACE LAYOUT CREATION
+  # =========================================================================
+  archive-creation:
+    name: Package Staging Repositories Workspace
+    runs-on: ubuntu-latest
+    needs: [build-packages, sign-repository, build-jekyll]
+    steps:
+      - name: Retrieve All Package Pools
+        uses: actions/download-artifact@v4
+        with:
+          pattern: package-*
+          path: pool/
+          merge-multiple: true
+
+      - name: Retrieve All Signed Repository Indexes
+        uses: actions/download-artifact@v4
+        with:
+          pattern: signed-indexes-*
+          path: dists/
+          merge-multiple: true
+
+      - name: Re-instate Compiled Site Pages
+        uses: actions/download-artifact@v4
+        with:
+          name: compiled-site
+          path: ./
+
       - name: Modify Web Assets for Local Offline Previewing
         run: |
-          echo "Converting root-relative paths to local file-relative tracks..."
-          find . -maxdepth 1 -type f -name "*.html" -exec sed -i 's|href="/|href="./|g' {} \;
-          find . -maxdepth 1 -type f -name "*.html" -exec sed -i 's|src="/|src="./|g' {} \;
+          chmod +x .github/apt/scripts/flatten-web-paths.sh
+          .github/apt/scripts/flatten-web-paths.sh "./"
 
       - name: Archive Finalized System Package Layout Tree
         uses: actions/upload-artifact@v4
