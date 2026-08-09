@@ -78,10 +78,10 @@ jobs:
 
       - name: Determine Version Number
         run: |
-          [ "${{ matrix.architecture }}" = "all" ] && [ "${{ matrix.component }}" = "main" ] && echo "VERSION=1.0" >> "$GITHUB_ENV"
-          [ "${{ matrix.architecture }}" = "amd64" ] && [ "${{ matrix.component }}" = "main" ] && echo "VERSION=1.0" >> "$GITHUB_ENV"
-          [ "${{ matrix.architecture }}" = "all" ] && [ "${{ matrix.component }}" = "non-free" ] && echo "VERSION=1.0" >> "$GITHUB_ENV"
-          [ "${{ matrix.architecture }}" = "amd64" ] && [ "${{ matrix.component }}" = "non-free" ] && echo "VERSION=1.0" >> "$GITHUB_ENV"
+          [ "${{ matrix.architecture }}" = "all" ] && [ "${{ matrix.component }}" = "main" ] && VERSION="1.0"
+          [ "${{ matrix.architecture }}" = "amd64" ] && [ "${{ matrix.component }}" = "main" ] && VERSION="2.0"
+          [ "${{ matrix.architecture }}" = "all" ] && [ "${{ matrix.component }}" = "non-free" ] && VERSION="3.0"
+          [ "${{ matrix.architecture }}" = "amd64" ] && [ "${{ matrix.component }}" = "non-free" ] && VERSION="4.0"
 
       - name: Compile Single Atomic Package Variation
         run: |
