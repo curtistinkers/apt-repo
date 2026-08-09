@@ -96,9 +96,9 @@ jobs:
         run: |
           TARGET_WORKSPACE="/tmp/${{ matrix.suite }}-${{ matrix.component }}-${{ matrix.architecture }}"
           echo "WORKSPACE_DIR=${TARGET_WORKSPACE}" >> "${GITHUB_ENV}"
-          mkdir -p "${WORKSPACE_DIR}/DEBIAN"
+          mkdir -p "${TARGET_WORKSPACE}/DEBIAN"
 
-          cat << EOF > "${WORKSPACE_DIR}/DEBIAN/control"
+          cat << EOF > "${TARGET_WORKSPACE}/DEBIAN/control"
           Package: ${{ matrix.suite }}-${{ matrix.component }}-${{ matrix.architecture }}-test
           Version: ${VERSION}
           Architecture: ${{ matrix.architecture }}
