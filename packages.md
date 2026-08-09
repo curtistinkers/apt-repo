@@ -4,6 +4,9 @@ title: Package Directory
 permalink: /packages/
 ---
 
+* [Home](/)
+* [Browse Packages](/packages/)
+
 Browse the custom configuration sets, tools, and package definitions actively
 hosted across our infrastructure matrices.
 
