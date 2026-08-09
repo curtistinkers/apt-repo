@@ -3,19 +3,50 @@ name: Matrix Indexer
 on:
   workflow_dispatch:
 
+env:
+  REPO_DISTS: '["bookworm", "trixie", "pve8", "pve9"]'  # Array string for Job 1's matrix strategy
+  REPO_SECTIONS: '["main", "non-free"]'                 # Array string for Job 1's matrix strategy
+  REPO_ARCHITECTURES: '["all", "amd64"]'                # Array string for Job 1's matrix strategy
+
 jobs:
+  # =========================================================================
+  # JOB 0: BOOTSTRAP ENVIRONMENT CALCULATOR
+  # =========================================================================
+  bootstrap:
+    name: Initialize Pipeline Context
+    runs-on: ubuntu-latest
+    outputs:
+      # Saves the configurations as job outputs accessible inside matrix strategies
+      dists: ${{ steps.export-vars.outputs.dists }}
+      sections: ${{ steps.export-vars.outputs.sections }}
+      architectures: ${{ steps.export-vars.outputs.architectures }}
+
+      components: ${{ steps.export-vars.outputs.components }}
+    steps:
+      - id: export-vars
+        run: |
+          echo "Processing global arrays for matrix injection..."
+          echo "dists=${{ env.REPO_DISTS }}" >> "$GITHUB_OUTPUT"
+          echo "sections=${{ env.REPO_SECTIONS }}" >> "$GITHUB_OUTPUT"
+          echo "architectures=${{ env.REPO_ARCHITECTURES }}" >> "$GITHUB_OUTPUT"
+          
+          # Use built-in jq to instantly generate the space-separated string companion
+          COMPONENTS=$(echo '${{ env.REPO_SECTIONS }}' | jq -r '. | join(" ")')
+          echo "components=${COMPONENTS}" >> "$GITHUB_OUTPUT"
+
   # =========================================================================
   # JOB 1: NATIVE 16-WAY ATOMIC PARALLEL MATRIX PACKAGE COMPILATION
   # =========================================================================
   build-packages:
     name: Compile ${{ matrix.dist }}-${{ matrix.section }}-${{ matrix.arch }}
     runs-on: ubuntu-latest
+    needs: bootstrap
     strategy:
       matrix:
-        # Splits the work into 16 completely separate, isolated concurrent servers
-        dist: [bookworm, trixie, pve8, pve9]
-        section: [main, non-free]
-        arch: [all, amd64]
+        # Inherits array from top-level global settings natively
+        dist: ${{ fromJson(needs.bootstrap.outputs.dists) }}
+        section: ${{ fromJson(needs.bootstrap.outputs.sections) }}
+        arch:  ${{ fromJson(needs.bootstrap.outputs.architectures) }}
     steps:
       - name: Check for Cached Package Files
         id: cache-deb
@@ -24,7 +55,7 @@ jobs:
           path: pool/${{ matrix.dist }}/${{ matrix.section }}/
           # The key binds explicitly to this precise matrix slot coordination
           key: deb-cache-${{ matrix.dist }}-${{ matrix.section }}-${{ matrix.arch }}
-          
+
       - name: Initialize Component Pool Target Directory
         run: mkdir -p "pool/${{ matrix.dist }}/${{ matrix.section }}"
 
@@ -38,15 +69,26 @@ jobs:
 
           # Sandbox the build workspace to prevent file collisions
           WORKSPACE_DIR="/tmp/${{ matrix.dist }}-${{ matrix.section }}-${{ matrix.arch }}"
-          mkdir -p "${WORKSPACE_DIR}/DEBIAN"
-          DIST=${{ matrix.dist }}
+
+          export DIST="${{ matrix.dist }}"
+
+          # 1. Determine pretty name from distro machine name.
+          if [[ "${DIST}" == pve* ]]; then
+            # Capitalizes the 'pve' string prefix cleanly to Proxmox VE
+            export PRETTY_NAME="Proxmox VE ${DIST#pve}"
+          else
+            # Capitalizes the first letter of the Debian codename on the fly
+            export PRETTY_NAME="Debian ${DIST^}"
+          fi
+
+           mkdir -p "${WORKSPACE_DIR}/DEBIAN"
 
           cat << EOF > "${WORKSPACE_DIR}/DEBIAN/control"
           Package: ${{ matrix.dist }}-${{ matrix.section }}-${{ matrix.arch }}-test
           Version: ${VERSION}
           Architecture: ${{ matrix.arch }}
           Maintainer: curtistinkers
-          Description: A ${{ matrix.section }} ${{ matrix.arch }} test package for ${DIST^}.
+          Description: A ${{ matrix.section }} ${{ matrix.arch }} test package for ${PRETTY_NAME}.
           EOF
 
           # Build directly into the precise folder track matching our layout
@@ -65,7 +107,7 @@ jobs:
   index-and-sign:
     name: Generate & Sign APT Repo for ${{ matrix.dist }}
     runs-on: ubuntu-latest
-    needs: build-packages
+    needs: [bootstrap, build-packages]
     strategy:
       matrix:
         # Multiplies into 4 simultaneous parallel builder runners
@@ -89,9 +131,9 @@ jobs:
 
       - name: Initialize Suite Distribution Directories
         run: |
-          for SECTION in main non-free; do
-            for COMPONENT in binary-all binary-amd64 source; do
-              mkdir -p "dists/${{ matrix.dist }}/${SECTION}/${COMPONENT}"
+          for COMPONENT in ${{ needs.bootstrap.outputs.components }}; do
+            for TYPE in binary-all binary-amd64 source; do
+              mkdir -p "dists/${{ matrix.dist }}/${COMPONENT}/${TYPE}"
             done
           done
 
@@ -103,24 +145,17 @@ jobs:
           echo "Rendering dynamic metadata header profile for: ${{ matrix.dist }}"
           
           export DIST="${{ matrix.dist }}"
+          export COMPONENTS="${{ needs.bootstrap.outputs.components }}"
 
-          echo "Distro: ${DIST}"
-          
-          # 1. Evaluate target suite prefix names
+          # 1. Determine pretty name from distro machine name.
           if [[ "${DIST}" == pve* ]]; then
             # Capitalizes the 'pve' string prefix cleanly to Proxmox VE
-            export SUITE_NAME="Proxmox VE ${DIST#pve}"
+            export PRETTY_NAME="Proxmox VE ${DIST#pve}"
           else
             # Capitalizes the first letter of the Debian codename on the fly
-            SUITE_NAME="Debian ${DIST^}"
+            export PRETTY_NAME="Debian ${DIST^}"
           fi
-
-          echo "Suite: ${SUITE_NAME}"
-          
-          DESCRIPTION_NAME="${SUITE_NAME}"
-
-          echo "Full name: ${DESCRIPTION_NAME}"
-          
+        
           # 2. Inject environment attributes directly into your new single template file
           # and save it as a temporary live configuration file for this specific matrix runner
           envsubst < .github/apt/release.conf.template > .github/apt/${{ matrix.dist }}-release.conf
@@ -167,7 +202,7 @@ jobs:
   build-jekyll:
     name: Compile Final Jekyll Layouts
     runs-on: ubuntu-latest
-    needs: [build-packages, index-and-sign]
+    needs: [bootstrap, build-packages, index-and-sign]
     steps:
       - name: Checkout Source Code
         uses: actions/checkout@v4
@@ -193,8 +228,8 @@ jobs:
         run: |
           mkdir -p _data
           echo "packages:" > _data/packages.yml
-          if [ -d "static/pool" ]; then
-            find static/pool/ -name "*.deb" | sort | while read -r deb; do
+          if [ -d "pool" ]; then
+            find pool/ -name "*.deb" | sort | while read -r deb; do
               echo "Extracting package attributes from: $deb" >&2
               pkg_name=$(dpkg-deb -f "$deb" Package)
               pkg_ver=$(dpkg-deb -f "$deb" Version)

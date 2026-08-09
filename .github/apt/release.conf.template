@@ -3,5 +3,5 @@ APT::FTPArchive::Release::Label "Packages host by curtistinkers";
 APT::FTPArchive::Release::Suite "${DIST}";
 APT::FTPArchive::Release::Codename "${DIST}";
 APT::FTPArchive::Release::Architectures "amd64 all source";
-APT::FTPArchive::Release::Components "main non-free";
-APT::FTPArchive::Release::Description "Universal configuration and specialized tools for ${DESCRIPTION_NAME}.";
+APT::FTPArchive::Release::Components "${COMPONENTS}";
+APT::FTPArchive::Release::Description "Universal configuration and specialized tools for ${PRETTY_NAME}.";
