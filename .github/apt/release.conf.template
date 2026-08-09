@@ -1,7 +1,7 @@
 APT::FTPArchive::Release::Origin "curtistinkers APT Repository";
 APT::FTPArchive::Release::Label "Packages host by curtistinkers";
-APT::FTPArchive::Release::Suite "${DIST}";
-APT::FTPArchive::Release::Codename "${DIST}";
-APT::FTPArchive::Release::Architectures "amd64 all source";
+APT::FTPArchive::Release::Suite "${SUITE}";
+APT::FTPArchive::Release::Codename "${SUITE}";
+APT::FTPArchive::Release::Architectures "${ARCHITECTURES}";
 APT::FTPArchive::Release::Components "${COMPONENTS}";
 APT::FTPArchive::Release::Description "Universal configuration and specialized tools for ${PRETTY_NAME}.";
