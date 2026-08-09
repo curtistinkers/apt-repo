@@ -153,7 +153,7 @@ jobs:
             mkdir -p "dists/${{ matrix.suite }}/${SECTION}/source"
           done
 
-      - name: Generate ${{ matrix.suite }} apt-ftparchive Configuration via Template
+      - name: Generate Suite apt-ftparchive Configuration via Template
         run: |
           # 1. Map matrix tokens into the matching environment placeholders
           export SUITE="${{ matrix.suite }}"
@@ -167,10 +167,10 @@ jobs:
           # 3. Verify the generated output layout in your console log
           cat .github/apt/apt-ftparchive-${{ matrix.suite }}.conf
 
-      - name: Run apt-ftparchive Index Scan for ${{ matrix.suite }}
+      - name: Run apt-ftparchive Index Scan
         run: apt-ftparchive generate .github/apt/apt-ftparchive-${{ matrix.suite }}.conf
 
-      - name: Generate ${{ matrix.suite }} Release Manifest via Template
+      - name: Generate Release Manifest via Template
         run: |
           echo "Rendering dynamic metadata header profile for: ${{ matrix.suite }}"
           
@@ -201,7 +201,7 @@ jobs:
           gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
           passphrase: ${{ secrets.GPG_PASSPHRASE }}
 
-      - name: Cryptographically Lock ${{ matrix.suite }} Release Manifest
+      - name: Cryptographically Lock Release Manifest
         run: |
           echo "Signing suite release manifests for target: ${{ matrix.suite }}"
           rm -f "dists/${{ matrix.suite }}/InRelease" "dists/${{ matrix.suite }}/Release.gpg"
@@ -218,11 +218,12 @@ jobs:
             --local-user "${{ steps.import-gpg.outputs.keyid }}" \
             --output "dists/${{ matrix.suite }}/Release.gpg" "dists/${{ matrix.suite }}/Release"
 
-      - name: Verify Authentic ${{ matrix.suite }} Release Manifest Signature
+      - name: Verify Authentic Release Manifest Signature
         run: |
           echo "=== Verifying Signature Against Repository Public Keyring ==="
           gpg --keyring ./assets/keyrings/curtistinkers-archive-keyring.gpg \
               --no-default-keyring \
+              --trust-model always \
               --verify "dists/${{ matrix.suite }}/InRelease"
 
       - name: Stash Signed Metadata Indexes
