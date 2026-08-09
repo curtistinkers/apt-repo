@@ -326,9 +326,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: finalized-apt-repository-layout
-          path: |
-            dists/
-            pool/
-            *.html
-            assets/
-            /packages/
+          path: .

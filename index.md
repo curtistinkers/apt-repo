@@ -4,6 +4,6 @@ title: Home
 ---
 
 * [Home](/)
-* [Browse Packages](/packages/)
+* [Browse Packages](/packages.html)
 
 {% include_relative README.md %}
