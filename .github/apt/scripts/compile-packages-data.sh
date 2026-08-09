@@ -53,10 +53,11 @@ find dists/ -type f -name "Packages" | sort | while read -r index_file; do
         {
             pkg="" ; ver="" ; desc="" ; file=""
             for(i=1; i<=NF; i++) {
-                if($i ~ /^Package/) { pkg=substr($0, index($0, $i)+length($i)+2); split(pkg, a, "\n"); pkg=a }
-                if($i ~ /^Version/) { ver=substr($0, index($0, $i)+length($i)+2); split(ver, a, "\n"); ver=a }
-                if($i ~ /^Description/) { desc=substr($0, index($0, $i)+length($i)+2); split(desc, a, "\n"); desc=a }
-                if($i ~ /^Filename/) { file=substr($0, index($0, $i)+length($i)+2); split(file, a, "\n"); file=a }
+                # Cleanly extracts the text directly following the field labels
+                if($i ~ /^Package/)     { pkg=substr($0, index($0, $i)+length($i)+2); sub(/\n.*/, "", pkg) }
+                if($i ~ /^Version/)     { ver=substr($0, index($0, $i)+length($i)+2); sub(/\n.*/, "", ver) }
+                if($i ~ /^Description/) { desc=substr($0, index($0, $i)+length($i)+2); sub(/\n.*/, "", desc) }
+                if($i ~ /^Filename/)    { file=substr($0, index($0, $i)+length($i)+2); sub(/\n.*/, "", file) }
             }
             
             if(file != "") {
