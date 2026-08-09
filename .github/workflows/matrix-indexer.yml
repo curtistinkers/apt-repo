@@ -280,50 +280,10 @@ jobs:
       - name: Setup GitHub Pages Infrastructure
         uses: actions/configure-pages@v5
 
-      - name: Compile Jekyll Package Data from Text Indexes
+      - name: Compile Automated Jekyll Package Data from Text Indexes
         run: |
-          mkdir -p _data
-          echo "packages:" > _data/packages.yml
-          
-          if [ -d "dists" ]; then
-            echo "Scanning plain-text index manifests for high-performance table generation..."
-            
-            # Recursively find every uncompressed Packages index map file on disk
-            find dists/ -type f -name "Packages" | sort | while read -r index_file; do
-              echo "Parsing index map: $index_file" >&2
-              
-              awk '
-                BEGIN { FS=": "; RS="" }
-                {
-                  pkg="" ; ver="" ; desc="" ; file=""
-                  for(i=1; i<=NF; i++) {
-                    if($i ~ /^Package/) { pkg=substr($0, index($0, $i)+length($i)+2); split(pkg, a, "\n"); pkg=a[1] }
-                    if($i ~ /^Version/) { ver=substr($0, index($0, $i)+length($i)+2); split(ver, a, "\n"); ver=a[1] }
-                    if($i ~ /^Description/) { desc=substr($0, index($0, $i)+length($i)+2); split(desc, a, "\n"); desc=a[1] }
-                    if($i ~ /^Filename/) { file=substr($0, index($0, $i)+length($i)+2); split(file, a, "\n"); file=a[1] }
-                  }
-                  
-                  # Parse the suite and component straight out of the internal Filename path 
-                  # Example: pool/noble/main/package.deb -> suite=noble, component=main
-                  if(file != "") {
-                    split(file, path_parts, "/")
-                    suite=path_parts[2]
-                    component=path_parts[3]
-                    filename=path_parts[4]
-                    
-                    print "  - name: \"" pkg "\""
-                    print "    version: \"" ver "\""
-                    print "    suite: \"" suite "\""
-                    print "    component: \"" component "\""
-                    print "    file: \"" filename "\""
-                    print "    description: \"" desc "\""
-                  }
-                }
-              ' "$index_file" >> _data/packages.yml
-            done
-          else
-            echo "Dists metadata directory not found. Skipping web data compilation."
-          fi
+          chmod +x .github/apt/scripts/compile-packages-data.sh
+          .github/apt/scripts/compile-packages-data.sh
 
       - name: Build Pages with Jekyll
         uses: actions/jekyll-build-pages@v1
