@@ -134,7 +134,7 @@ jobs:
         run: |
           for DIST in bookworm trixie pve8 pve9; do
             for SECTION in main non-free; do
-              for COMPONENT in binary-all binary-amd64 source
+              for COMPONENT in binary-all binary-amd64 source; do
                 echo "Creating directory: dists/${DIST}/${SECTION}/${COMPONENT}"
                 mkdir -p "dists/${DIST}/${SECTION}/${COMPONENT}"
               done
