@@ -1,7 +1,7 @@
 ---
 layout: default
 title: Package Directory
-# permalink: /packages/
+permalink: /packages/
 ---
 
 Browse the custom configuration sets, tools, and package definitions actively
