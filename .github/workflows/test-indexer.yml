@@ -130,12 +130,14 @@ jobs:
           sudo apt-get install -y dpkg-dev apt-utils
           mkdir -p cache
 
-      - name: Initialize Suite Distribution Folders
+      - name: Initialize Suite Distribution Directories
         run: |
           for DIST in bookworm trixie pve8 pve9; do
             for SECTION in main non-free; do
-              echo "Creating directory: dists/${DIST}/${SECTION}/{binary-all,binary-amd64,source}"
-              mkdir -p "dists/${DIST}/${SECTION}/{binary-all,binary-amd64,source}"
+              for COMPONENT in binary-all binary-amd64 source
+                echo "Creating directory: dists/${DIST}/${SECTION}/${COMPONENT}"
+                mkdir -p "dists/${DIST}/${SECTION}/${COMPONENT}"
+              done
             done
           done
 
