@@ -125,7 +125,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: indexes-${{ matrix.dist }}
-          path: dists/${{ matrix.dist }}/
+          path: dists/
 
   # =========================================================================
   # JOB 3: COLLECT MATRIX ASSETS AND COMPILE WEB PLATFORM LAST
