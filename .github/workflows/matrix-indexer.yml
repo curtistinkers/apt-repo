@@ -192,7 +192,6 @@ jobs:
         with:
           pattern: intermediate-dists-indexes-*
           path: dists/
-          merge-multiple: true
 
       - name: Import GPG Cryptographic Key Ring
         id: import-gpg
