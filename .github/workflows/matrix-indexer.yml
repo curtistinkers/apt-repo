@@ -66,10 +66,10 @@ jobs:
       - name: Checkout Source Code
         uses: actions/checkout@v4
 
-      - name: Re-instate Complete Package Pools
+      - name: Restore Specific Package Suite Pools
         uses: actions/download-artifact@v4
         with:
-          pattern: package-*
+          pattern: package-${{ matrix.dist }}-*
           path: pool/
           merge-multiple: true
 
