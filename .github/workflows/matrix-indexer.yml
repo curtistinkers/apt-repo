@@ -94,18 +94,24 @@ jobs:
         run: |
           echo "Rendering dynamic metadata header profile for: ${{ matrix.dist }}"
           
-          DIST="${{ matrix.dist }}"
+          export DIST="${{ matrix.dist }}"
+
+          echo "Distro: ${DIST}"
           
           # 1. Evaluate target suite prefix names
-          if [[ "$DIST" == pve* ]]; then
+          if [[ "${DIST}" == pve* ]]; then
             # Capitalizes the 'pve' string prefix cleanly to Proxmox VE
-            SUITE_NAME="Proxmox VE ${DIST#pve}"
+            export SUITE_NAME="Proxmox VE ${DIST#pve}"
           else
             # Capitalizes the first letter of the Debian codename on the fly
             SUITE_NAME="Debian ${DIST^}"
           fi
+
+          echo "Suite: ${SUITE_NAME}"
           
-          DESCRIPTION_NAME="$SUITE_NAME"
+          DESCRIPTION_NAME="${SUITE_NAME}"
+
+          echo "Full name: ${DESCRIPTION_NAME}"
           
           # 2. Inject environment attributes directly into your new single template file
           # and save it as a temporary live configuration file for this specific matrix runner
