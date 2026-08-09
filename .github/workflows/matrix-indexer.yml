@@ -17,6 +17,14 @@ jobs:
         section: [main, non-free]
         arch: [all, amd64]
     steps:
+      - name: Check for Cached Package Files
+        id: cache-deb
+        uses: actions/cache@v4
+        with:
+          path: pool/${{ matrix.dist }}/${{ matrix.section }}/
+          # The key binds explicitly to this precise matrix slot coordination
+          key: deb-cache-${{ matrix.dist }}-${{ matrix.section }}-${{ matrix.arch }}
+          
       - name: Initialize Component Pool Target Directory
         run: mkdir -p "pool/${{ matrix.dist }}/${{ matrix.section }}"
 
