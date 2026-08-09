@@ -177,7 +177,7 @@ jobs:
         run: |
           for DIST in bookworm trixie pve8 pve9; do
             echo "${DIST^^} RELEASE MAP"
-            cat dist/${DIST}/Release
+            cat dists/${DIST}/Release
           done
 
       - name: Archive Completed System Package Layout Tree
