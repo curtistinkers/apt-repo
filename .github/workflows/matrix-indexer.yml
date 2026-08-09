@@ -49,7 +49,7 @@ jobs:
         with:
           # Unique named key system preserves all 16 tracks perfectly
           name: package-${{ matrix.dist }}-${{ matrix.section }}-${{ matrix.arch }}
-          path: pool/${{ matrix.dist }}/${{ matrix.section }}/
+          path: pool/
 
   # =========================================================================
   # JOB 2: PARALLEL INDEX GENERATION & SECURE CRYPTOGRAPHIC GPG SIGNING
@@ -70,7 +70,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           pattern: package-*
-          path: pool/
+          path: ./
           merge-multiple: true
 
       - name: Provision Apt Indexing Tools
@@ -142,7 +142,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           pattern: package-*
-          path: pool/
+          path: ./
           merge-multiple: true
 
       - name: Re-instate All Signed Repository Indexes
