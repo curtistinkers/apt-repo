@@ -142,14 +142,14 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           pattern: package-*
-          path: pool/
+          path: static/pool/
           merge-multiple: true
 
       - name: Re-instate All Signed Repository Indexes
         uses: actions/download-artifact@v4
         with:
           pattern: indexes-*
-          path: dists/
+          path: static/dists/
           merge-multiple: true
 
       - name: Setup Pages Infrastructure
@@ -189,7 +189,7 @@ jobs:
       - name: Transfer Web Assets to Test Subdirectory
         run: |
           mkdir -p static
-          cp -r _site/* static/
+          cp -r _site/* ./
           find static/ -type f -name "*.html" -exec sed -i 's|href="/|href="./|g' {} \;
           find static/ -type f -name "*.html" -exec sed -i 's|src="/|src="./|g' {} \;
 
