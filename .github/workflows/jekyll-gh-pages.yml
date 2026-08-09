@@ -1,10 +1,6 @@
-name: Lint and Deploy Jekyll Layouts
+name: Lint and Deploy Jekyll to gh-pages (old)
 
 on:
-  push:
-    branches:
-      - "main"
-      - "gh-pages" # CRITICAL: Wakes this workflow up when ANY repo pushes to gh-pages
   workflow_dispatch:
 
 # Sets permissions to allow deployment to gh-pages branch
