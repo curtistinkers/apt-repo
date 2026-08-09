@@ -58,7 +58,7 @@ jobs:
     steps:
       - name: Checkout Source Code
         uses: actions/checkout@v4
-        
+
       - name: Check for Cached Package Files
         id: cache-deb
         uses: actions/cache@v4
@@ -76,16 +76,16 @@ jobs:
       - name: Initialize Component Pool Target Directory
         run: mkdir -p "pool/${{ matrix.suite }}/${{ matrix.component }}"
 
+      - name: Determine Version Number
+        run: |
+          [ "${{ matrix.architecture }}" = "all" ] && [ "${{ matrix.component }}" = "main" ] && echo "VERSION=1.0" >> "$GITHUB_ENV"
+          [ "${{ matrix.architecture }}" = "amd64" ] && [ "${{ matrix.component }}" = "main" ] && echo "VERSION=1.0" >> "$GITHUB_ENV"
+          [ "${{ matrix.architecture }}" = "all" ] && [ "${{ matrix.component }}" = "non-free" ] && echo "VERSION=1.0" >> "$GITHUB_ENV"
+          [ "${{ matrix.architecture }}" = "amd64" ] && [ "${{ matrix.component }}" = "non-free" ] && echo "VERSION=1.0" >> "$GITHUB_ENV"
+
       - name: Compile Single Atomic Package Variation
         run: |
-          # Dynamically lock down version numbers based on matrix coordinates
-          [ "${{ matrix.architecture }}" = "all" ] && [ "${{ matrix.component }}" = "main" ] && VERSION="1.0"
-          [ "${{ matrix.architecture }}" = "amd64" ] && [ "${{ matrix.component }}" = "main" ] && VERSION="2.0"
-          [ "${{ matrix.architecture }}" = "all" ] && [ "${{ matrix.component }}" = "non-free" ] && VERSION="3.0"
-          [ "${{ matrix.architecture }}" = "amd64" ] && [ "${{ matrix.component }}" = "non-free" ] && VERSION="4.0"
-
-          # Sandbox the build workspace to prevent file collisions
-          WORKSPACE_DIR="/tmp/${{ matrix.suite }}-${{ matrix.component }}-${{ matrix.architecture }}"
+          echo "WORKSPACE_DIR=/tmp/${{ matrix.suite }}-${{ matrix.component }}-${{ matrix.architecture }}" >> "$GITHUB_ENV"
           mkdir -p "${WORKSPACE_DIR}/DEBIAN"
 
           cat << EOF > "${WORKSPACE_DIR}/DEBIAN/control"
@@ -94,10 +94,10 @@ jobs:
           Architecture: ${{ matrix.architecture }}
           Maintainer: curtistinkers
           Description: A ${{ matrix.component }} ${{ matrix.architecture }} test package for ${SUITE_PRETTY_NAME}.
-          EOF
+          EOF 
 
-          # Build directly into the precise folder track matching our layout
-          dpkg-deb --build "${WORKSPACE_DIR}" "pool/${{ matrix.suite }}/${{ matrix.component }}/${{ matrix.suite }}-${{ matrix.component }}-${{ matrix.architecture }}-test_${VERSION}_${{ matrix.architecture }}.deb"
+      - name: Build Package Into Folder Tracking Layout
+        run: dpkg-deb --build "${WORKSPACE_DIR}" "pool/${{ matrix.suite }}/${{ matrix.component }}/${{ matrix.suite }}-${{ matrix.component }}-${{ matrix.architecture }}-test_${VERSION}_${{ matrix.architecture }}.deb"
 
       - name: Stash Isolated Package Asset
         uses: actions/upload-artifact@v4
@@ -109,7 +109,7 @@ jobs:
   # =========================================================================
   # JOB 2: PARALLEL INDEX GENERATION & SECURE CRYPTOGRAPHIC GPG SIGNING
   # =========================================================================
-  index-and-sign:
+  index-repository:
     name: Generate & Sign APT Repo for ${{ matrix.suite }}
     runs-on: ubuntu-latest
     needs: [bootstrap, build-packages]
@@ -144,13 +144,11 @@ jobs:
         run: |
           # Loop through your sections dynamically from bootstrap outputs
           for SECTION in ${{ needs.bootstrap.outputs.components_string }}; do
-          
             # Loop through your architectures dynamically
             for ARCHITECTURE in $(echo '${{ env.REPO_ARCHITECTURES }}' | jq -r '. | join(" ")'); do
               echo "Creating directory: dists/${{ matrix.suite }}/${SECTION}/binary-${ARCHITECTURE}"
               mkdir -p "dists/${{ matrix.suite }}/${SECTION}/binary-${ARCHITECTURE}"
             done
-            
             # Always append the pristine source folder track per component section
             echo "Creating directory: dists/${{ matrix.suite }}/${SECTION}/source"
             mkdir -p "dists/${{ matrix.suite }}/${SECTION}/source"
@@ -158,16 +156,10 @@ jobs:
 
       - name: Generate Suite apt-ftparchive Configuration via Template
         run: |
-          # 1. Map matrix tokens into the matching environment placeholders
           export SUITE="${{ matrix.suite }}"
           export COMPONENTS="${{ needs.bootstrap.outputs.components_string }}"
           export ARCHITECTURES="${{ needs.bootstrap.outputs.architectures_string }}"
-          
-          # 2. Inject environment attributes directly into your new single template file
-          # and save it as a temporary live configuration file for this specific matrix runner
           envsubst < .github/apt/apt-ftparchive.conf.template > .github/apt/apt-ftparchive-${{ matrix.suite }}.conf
-          
-          # 3. Verify the generated output layout in your console log
           cat .github/apt/apt-ftparchive-${{ matrix.suite }}.conf
 
       - name: Run apt-ftparchive Index Scan
@@ -175,18 +167,40 @@ jobs:
 
       - name: Generate Release Manifest via Template
         run: |
-          echo "Rendering dynamic metadata header profile for: ${{ matrix.suite }}"
-          
           export SUITE="${{ matrix.suite }}"
           export COMPONENTS="${{ needs.bootstrap.outputs.components_string }}"
           export ARCHITECTURES="${{ needs.bootstrap.outputs.architectures_string }}"
-        
-          # 2. Inject environment attributes directly into your new single template file
-          # and save it as a temporary live configuration file for this specific matrix runner
           envsubst < .github/apt/release.conf.template > .github/apt/${{ matrix.suite }}-release.conf
-          
-          # 3. Execute apt-ftparchive using the freshly compiled dynamic configuration file
-          apt-ftparchive -c ".github/apt/${{ matrix.suite }}-release.conf" release "dists/${{ matrix.suite }}" > "dists/${{ matrix.suite }}/Release"
+
+      - name: Run apt-ftparchive Manifest Generation
+        run: apt-ftparchive -c ".github/apt/${{ matrix.suite }}-release.conf" release "dists/${{ matrix.suite }}" > "dists/${{ matrix.suite }}/Release"
+
+      - name: Stash Plaintext Metadata Indexes
+        uses: actions/upload-artifact@v4
+        with:
+          name: indexes-${{ matrix.suite }}
+          path: dists/
+
+  # =========================================================================
+  # JOB 3: SECURE CRYPTOGRAPHIC GPG SIGNING BLOCK
+  # =========================================================================
+  sign-repository:
+    name: Cryptographically Sign Repo for ${{ matrix.suite }}
+    runs-on: ubuntu-latest
+    needs: [bootstrap, index-repository] # Waits for Job 2 to finish generating text files
+    strategy:
+      matrix:
+        suite: ${{ fromJson(needs.bootstrap.outputs.suites) }}
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Restore Specific Package Suite Pools
+        uses: actions/download-artifact@v4
+        with:
+          pattern: indexes-${{ matrix.suite }}
+          path: dists/
+          merge-multiple: true
 
       - name: Import GPG Cryptographic Key Ring
         id: import-gpg
@@ -221,7 +235,7 @@ jobs:
       - name: Stash Signed Metadata Indexes
         uses: actions/upload-artifact@v4
         with:
-          name: indexes-${{ matrix.suite }}
+          name: signed-indexes-${{ matrix.suite }}
           path: dists/
 
   # =========================================================================
@@ -230,22 +244,22 @@ jobs:
   build-jekyll:
     name: Compile Final Jekyll Layouts
     runs-on: ubuntu-latest
-    needs: [bootstrap, build-packages, index-and-sign]
+    needs: [bootstrap, build-packages, index-repository, sign-repository]
     steps:
       - name: Checkout Source Code
         uses: actions/checkout@v4
 
-      - name: Re-instate Complete Package Pools
+      - name: Retrieve Complete Package Pools
         uses: actions/download-artifact@v4
         with:
           pattern: package-*
           path: pool/
           merge-multiple: true
 
-      - name: Re-instate All Signed Repository Indexes
+      - name: Retrieve All Signed Repository Indexes
         uses: actions/download-artifact@v4
         with:
-          pattern: indexes-*
+          pattern: signed-indexes-*
           path: dists/
           merge-multiple: true
 
@@ -303,3 +317,4 @@ jobs:
             pool/
             *.html
             assets/
+            /packages/
