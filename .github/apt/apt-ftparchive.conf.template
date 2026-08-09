@@ -10,15 +10,15 @@ Default {
 };
 
 TreeDefault {
-	BinCacheDB "packages-\$(DIST)-\$(SECTION)-\$(ARCH).db";
-	Directory "pool/\$(DIST)/\$(SECTION)/";
-	Packages "dists/\$(DIST)/\$(SECTION)/binary-\$(ARCH)/Packages";
-	SrcDirectory "pool/\$(DIST)/\$(SECTION)";
-	Sources "dists/\$(DIST)/\$(SECTION)/source/Sources";
-	Contents "dists/\$(DIST)/Contents-\$(ARCH)";
+	BinCacheDB "packages-$(DIST)-$(SECTION)-$(ARCH).db";
+	Directory "pool/$(DIST)/$(SECTION)/";
+	Packages "dists/$(DIST)/$(SECTION)/binary-$(ARCH)/Packages";
+	SrcDirectory "pool/$(DIST)/$(SECTION)";
+	Sources "dists/$(DIST)/$(SECTION)/source/Sources";
+	Contents "dists/$(DIST)/Contents-$(ARCH)";
 };
 
 Tree "${SUITE}" {
-	Sections "${COMPONENTS}";
+	Sections "${COMPONENTS}"; # Links strictly to pool/${SUITE}/${COMPONENTS}
 	Architectures "${ARCHITECTURES}";
 }
