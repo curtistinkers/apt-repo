@@ -280,7 +280,7 @@ jobs:
       - name: Setup GitHub Pages Infrastructure
         uses: actions/configure-pages@v5
 
-      - name: Compile Automated Jekyll Package Data from Text Indexes
+      - name: Compile Jekyll Package Data from Apt Indexes
         run: |
           chmod +x .github/apt/scripts/compile-packages-data.sh
           .github/apt/scripts/compile-packages-data.sh
