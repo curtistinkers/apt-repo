@@ -212,6 +212,20 @@ jobs:
               --output "dists/${DIST}/Release.gpg" "dists/${DIST}/Release"
           done
 
+      - name: Verify Generated Signatures
+        run: |
+          echo "=== Verification 1: Validating Integrated InRelease Files ==="
+          for DIST in bookworm trixie pve8 pve9; do
+            echo "Checking authentication wrapper for: ${DIST}"
+            gpg --verify "dists/${DIST}/InRelease"
+          done
+          
+          echo "=== Verification 2: Validating Detached Release.gpg Tokens ==="
+          for DIST in bookworm trixie pve8 pve9; do
+            echo "Checking detached token block for: ${DIST}"
+            gpg --verify "dists/${DIST}/Release.gpg" "dists/${DIST}/Release"
+          done
+
       - name: Archive Completed System Package Layout Tree
         uses: actions/upload-artifact@v4
         with:
