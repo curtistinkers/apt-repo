@@ -1,0 +1,271 @@
+name: Lint, Index, Compile, and Deploy
+
+on:
+  push:
+    branches:
+      - "main"
+
+  workflow_dispatch:
+
+# Sets permissions to allow deployment to gh-pages branch
+permissions:
+  contents: read    # Needed to commit files to the gh-pages branch
+  pages: write       # Needed to publish artifacts to GitHub Pages
+  id-token: write    # Needed for OIDC token verification
+
+# Allow only one concurrent deployment, skipping runs queued between the run
+# in-progress and latest queued. However, do NOT cancel in-progress runs as we
+# want to allow these production deployments to complete.
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+env:
+  REPO_SUITES: '["bookworm", "trixie", "pve8", "pve9", "resolute", "noble", "focal"]'  # Array string for Job 1's matrix strategy
+  REPO_COMPONENTS: '["main", "non-free"]'                 # Array string for Job 1's matrix strategy
+  REPO_ARCHITECTURES: '["all", "amd64"]'                # Array string for Job 1's matrix strategy
+
+jobs:
+    # =========================================================================
+  # JOB 1: CODE & CONFIGURATION LINTING
+  # =========================================================================
+  lint:
+    name: Lint and Validate Code Base
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Run Markdownlint Compliance Checker
+        uses: davidanson/markdownlint-cli2-action@v1
+        with:
+          globs: "**/*.md"
+  
+      - name: Run YAML Syntax Validator
+        uses: ibiqlik/action-yamllint@v3
+        with:
+          config_file: .yamllint.yml
+
+      - name: Run Actionlint Workflow Validator
+        uses: raven-actions/actionlint@v2
+  # =========================================================================
+  # JOB 2: BOOTSTRAP ENVIRONMENT CALCULATOR
+  # =========================================================================
+  bootstrap:
+    name: Initialize Pipeline Context
+    runs-on: ubuntu-latest
+    needs: [lint]
+    outputs:
+      suites: ${{ steps.export-vars.outputs.suites }}
+      components: ${{ steps.export-vars.outputs.components }}
+      architectures: ${{ steps.export-vars.outputs.architectures }}
+      components_string: ${{ steps.export-vars.outputs.components_string }}
+      architectures_string: ${{ steps.export-vars.outputs.architectures_string }}
+    steps:
+      - name: Export Environment Variables
+        id: export-vars
+        run: |
+          # Extracts sections array to plain space-separated text string
+          COMPONENTS_STRING=$(echo '${{ env.REPO_COMPONENTS }}' | jq -r '. | join(" ")')
+
+          # Extracts architecture array and appends "source" to match your template spec
+          ARCHITECTURES_STRING=$(echo '${{ env.REPO_ARCHITECTURES }}' | jq -r '. | join(" ")')
+
+          # Send all context into the output at once
+          {
+            echo 'suites=${{ env.REPO_SUITES }}'
+            echo 'components=${{ env.REPO_COMPONENTS }}'
+            echo 'architectures=${{ env.REPO_ARCHITECTURES }}'
+            echo "components_string=${COMPONENTS_STRING}"
+            echo "architectures_string=${ARCHITECTURES_STRING} source"
+          } >> "$GITHUB_OUTPUT"
+  # =========================================================================
+  # JOB 3: PARALLEL INDEX GENERATION
+  # =========================================================================
+  index-repository:
+    name: Generate Plaintext Repository Index for ${{ matrix.suite }}
+    runs-on: ubuntu-latest
+    needs: [bootstrap]
+    strategy:
+      matrix:
+        # Multiplies into 4 simultaneous parallel builder runners
+        suite: ${{ fromJson(needs.bootstrap.outputs.suites) }}
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Install Apt Indexing Tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y dpkg-dev apt-utils
+
+      - name: Determine Pretty Name
+        run: |
+          chmod +x .github/apt/scripts/get-pretty-name.sh
+          SUITE_NAME=$(.github/apt/scripts/get-pretty-name.sh "${{ matrix.suite }}" '${{ env.REPO_SUITES }}')
+          echo "SUITE_PRETTY_NAME=${SUITE_NAME}" >> "${GITHUB_ENV}"
+
+      - name: Create apt-ftparchive Cache Directory
+        run: mkdir -p cache
+
+      - name: Create Distribution Directory
+        run: |
+          # Loop through your sections dynamically from bootstrap outputs
+          for SECTION in ${{ needs.bootstrap.outputs.components_string }}; do
+            # Loop through your architectures dynamically
+            for ARCHITECTURE in $(echo '${{ env.REPO_ARCHITECTURES }}' | jq -r '. | join(" ")'); do
+              echo "Creating directory: dists/${{ matrix.suite }}/${SECTION}/binary-${ARCHITECTURE}"
+              mkdir -p "dists/${{ matrix.suite }}/${SECTION}/binary-${ARCHITECTURE}"
+            done
+            # Always append the pristine source folder track per component section
+            echo "Creating directory: dists/${{ matrix.suite }}/${SECTION}/source"
+            mkdir -p "dists/${{ matrix.suite }}/${SECTION}/source"
+          done
+
+      - name: Generate apt-ftparchive Configuration File
+        run: |
+          export SUITE="${{ matrix.suite }}"
+          export COMPONENTS="${{ needs.bootstrap.outputs.components_string }}"
+          export ARCHITECTURES="${{ needs.bootstrap.outputs.architectures_string }}"
+          envsubst < .github/apt/apt-ftparchive.conf.template > .github/apt/apt-ftparchive-${{ matrix.suite }}.conf
+          cat .github/apt/apt-ftparchive-${{ matrix.suite }}.conf
+
+      - name: Run apt-ftparchive Index Scan
+        run: apt-ftparchive generate .github/apt/apt-ftparchive-${{ matrix.suite }}.conf
+
+      - name: Generate Release Manifest File
+        run: |
+          export SUITE="${{ matrix.suite }}"
+          export COMPONENTS="${{ needs.bootstrap.outputs.components_string }}"
+          export ARCHITECTURES="${{ needs.bootstrap.outputs.architectures_string }}"
+          envsubst < .github/apt/release.conf.template > .github/apt/${{ matrix.suite }}-release.conf
+
+      - name: Run apt-ftparchive Manifest Generation
+        run: apt-ftparchive -c ".github/apt/${{ matrix.suite }}-release.conf" release "dists/${{ matrix.suite }}" > "dists/${{ matrix.suite }}/Release"
+
+      - name: Stash Plaintext Metadata Indexes
+        uses: actions/upload-artifact@v4
+        with:
+          name: indexes-${{ matrix.suite }}
+          path: dists/
+  # =========================================================================
+  # JOB 4: SECURE CRYPTOGRAPHIC GPG SIGNING BLOCK
+  # =========================================================================
+  sign-repository:
+    name: Sign Repository Index for ${{ matrix.suite }}
+    runs-on: ubuntu-latest
+    needs: [bootstrap, index-repository] # Waits for Job 2 to finish generating text files
+    strategy:
+      matrix:
+        suite: ${{ fromJson(needs.bootstrap.outputs.suites) }}
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Restore Package Pools
+        uses: actions/download-artifact@v4
+        with:
+          pattern: indexes-${{ matrix.suite }}
+          path: dists/
+          merge-multiple: true
+
+      - name: Import GPG Key Ring
+        id: import-gpg
+        uses: crazy-max/ghaction-import-gpg@v6
+        with:
+          gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
+          passphrase: ${{ secrets.GPG_PASSPHRASE }}
+
+      - name: Sign Release Manifest File
+        run: |
+          echo "Signing suite release manifests for target: ${{ matrix.suite }}"
+          rm -f "dists/${{ matrix.suite }}/InRelease" "dists/${{ matrix.suite }}/Release.gpg"
+          
+          # Generates inline clearsigned signature wrapper natively
+          gpg --batch --yes --clearsign --pinentry-mode loopback \
+            --passphrase "${{ secrets.GPG_PASSPHRASE }}" \
+            --local-user "${{ steps.import-gpg.outputs.keyid }}" \
+            --output "dists/${{ matrix.suite }}/InRelease" "dists/${{ matrix.suite }}/Release"
+            
+          # Generates detached binary signature token
+          gpg --batch --yes --detach-sign --pinentry-mode loopback \
+            --passphrase "${{ secrets.GPG_PASSPHRASE }}" \
+            --local-user "${{ steps.import-gpg.outputs.keyid }}" \
+            --output "dists/${{ matrix.suite }}/Release.gpg" "dists/${{ matrix.suite }}/Release"
+
+      - name: Verify Release Manifest Signature
+        run: |
+          echo "${{ steps.import-gpg.outputs.fingerprint }}:6:" | gpg --batch --yes --import-ownertrust
+          gpg --keyring ./assets/keyrings/curtistinkers-archive-keyring.gpg \
+              --verify "dists/${{ matrix.suite }}/InRelease"
+
+      - name: Stash Signed Repository Index
+        uses: actions/upload-artifact@v4
+        with:
+          name: signed-indexes-${{ matrix.suite }}
+          path: dists/
+  # =========================================================================
+  # JOB 5: COMPILE STATIC FILES WITH JEKYLL 
+  # =========================================================================
+  build-jekyll:
+    name: Compile Jekyll Pages
+    runs-on: ubuntu-latest
+    needs: [bootstrap, sign-repository]
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Retrieve All Signed Repository Indexes
+        uses: actions/download-artifact@v4
+        with:
+          pattern: signed-indexes-*
+          path: dists/
+          merge-multiple: true
+
+      - name: Setup GitHub Pages Infrastructure
+        uses: actions/configure-pages@v5
+
+      - name: Compile Jekyll Package Data from Apt Indexes
+        run: |
+          chmod +x .github/apt/scripts/compile-packages-data.sh
+          .github/apt/scripts/compile-packages-data.sh
+
+      - name: Build Pages with Jekyll
+        uses: actions/jekyll-build-pages@v1
+        with:
+          source: ./
+          destination: ./_site
+
+      - name: Merge APT Repository Structures Into Web Space
+        run: |
+          cp -r dists/ _site/
+          cp -r pool/ _site/
+
+      - name: Stash Compiled Site Pages
+        uses: actions/upload-artifact@v4
+        with:
+          name: compiled-site
+          path: _site/
+
+  # =========================================================================
+  # JOB 6: DEPLOY SITE TO GITHUB PAGES
+  # =========================================================================
+  archive-creation:
+    name: Create Downloadable Archive
+    runs-on: ubuntu-latest
+    needs: [build-jekyll]
+    steps:
+      - name: Retrieve Compiled Site Pages
+        uses: actions/download-artifact@v4
+        with:
+          name: compiled-site
+          path: ./
+
+      - name: Upload Pages Artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./
+
+      - name: Deploy Live to GitHub Pages Cluster
+        id: deployment
+        uses: actions/deploy-pages@v4
