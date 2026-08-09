@@ -213,14 +213,14 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           pattern: package-*
-          path: static/pool/
+          path: pool/
           merge-multiple: true
 
       - name: Re-instate All Signed Repository Indexes
         uses: actions/download-artifact@v4
         with:
           pattern: indexes-*
-          path: static/dists/
+          path: dists/
           merge-multiple: true
 
       - name: Setup Pages Infrastructure
@@ -257,12 +257,16 @@ jobs:
           source: ./
           destination: ./_site
 
-      - name: Transfer Web Assets to Test Subdirectory
+      - name: Flatten Web Assets to Workspace Root
         run: |
-          mkdir -p static
-          cp -r _site/* static/
-          find static/ -type f -name "*.html" -exec sed -i 's|href="/|href="./|g' {} \;
-          find static/ -type f -name "*.html" -exec sed -i 's|src="/|src="./|g' {} \;
+          echo "Unpacking compiled layouts to the root directory..."
+          cp -r _site/* ./
+  
+      - name: Modify Web Assets for Local Offline Previewing
+        run: |
+          echo "Converting root-relative paths to local file-relative tracks..."
+          find . -maxdepth 1 -type f -name "*.html" -exec sed -i 's|href="/|href="./|g' {} \;
+          find . -maxdepth 1 -type f -name "*.html" -exec sed -i 's|src="/|src="./|g' {} \;
 
       - name: Archive Finalized System Package Layout Tree
         uses: actions/upload-artifact@v4
@@ -271,5 +275,5 @@ jobs:
           path: |
             dists/
             pool/
-            static/
-            _data/
+            *.html
+            assets/
