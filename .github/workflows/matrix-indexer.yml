@@ -56,6 +56,9 @@ jobs:
         component: ${{ fromJson(needs.bootstrap.outputs.components) }}
         architecture:  ${{ fromJson(needs.bootstrap.outputs.architectures) }}
     steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+        
       - name: Check for Cached Package Files
         id: cache-deb
         uses: actions/cache@v4
