@@ -1,4 +1,4 @@
-name: Lint, Index, Compile, and Deploy
+name: Lint, Index, Compile, and Deploy to GitHub Pages
 
 on:
   push:
