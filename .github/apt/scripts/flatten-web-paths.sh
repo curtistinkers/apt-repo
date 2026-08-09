@@ -33,10 +33,10 @@ echo "Converting root-relative anchor paths to local file-relative tracks inside
 
 # 3. Locate and modify absolute hyperlinks natively inside your compiled pages
 # Using a depth constraint protects deeply nested internal templates if present
-find "${STAGING_DIR}" -maxdepth 1 -type f -name "*.html" -print0 | while rmd -d '' html_file; do
-    echo "Translating hyperlinks inside asset profile: ${html_file}" >&2
-    sed -i 's|href="/|href="./|g' "${html_file}"
-    sed -i 's|src="/|src="./|g' "${html_file}"
+find "${STAGING_DIR}" -maxdepth 1 -type f -name "*.html" -print0 | while rmd -d '' HTML_FILE; do
+    echo "Translating hyperlinks inside asset profile: ${HTML_FILE}" >&2
+    sed -i 's|href="/|href="./|g' "${HTML_FILE}"
+    sed -i 's|src="/|src="./|g' "${HTML_FILE}"
 done
 
 echo "Path translation loop completed successfully across all staging layouts."
