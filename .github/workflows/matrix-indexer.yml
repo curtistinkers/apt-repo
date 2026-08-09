@@ -46,7 +46,7 @@ jobs:
   # JOB 1: ATOMIC PARALLEL MATRIX PACKAGE COMPILATION
   # =========================================================================
   build-packages:
-    name: Compile ${{ matrix.suite }}-${{ matrix.component }}-${{ matrix.architecture }}
+    name: Build ${{ matrix.suite }}-${{ matrix.component }}-${{ matrix.architecture }} Test Package
     runs-on: ubuntu-latest
     needs: bootstrap
     strategy:
@@ -67,14 +67,11 @@ jobs:
           # The key binds explicitly to this precise matrix slot coordination
           key: deb-cache-${{ matrix.suite }}-${{ matrix.component }}-${{ matrix.architecture }}
       
-      - name: Compute Target Distribution Pretty Name
+      - name: Determine Pretty Name
         run: |
           chmod +x .github/apt/scripts/get-pretty-name.sh
           SUITE_NAME=$(.github/apt/scripts/get-pretty-name.sh "${{ matrix.suite }}" '${{ env.REPO_SUITES }}')
           echo "SUITE_PRETTY_NAME=${SUITE_NAME}" >> "${GITHUB_ENV}"
-
-      - name: Initialize Component Pool Target Directory
-        run: mkdir -p "pool/${{ matrix.suite }}/${{ matrix.component }}"
 
       - name: Determine Version Number
         run: |
@@ -92,13 +89,18 @@ jobs:
           fi
           echo "VERSION=${TARGET_VERSION}" >> "${GITHUB_ENV}"
 
-      - name: Compile Single Atomic Package Variation
+      - name: Create Pool Directory
+        run: mkdir -p "pool/${{ matrix.suite }}/${{ matrix.component }}"
+
+      - name: Create Workspace Directory
         run: |
           TARGET_WORKSPACE="/tmp/${{ matrix.suite }}-${{ matrix.component }}-${{ matrix.architecture }}"
           echo "WORKSPACE_DIR=${TARGET_WORKSPACE}" >> "${GITHUB_ENV}"
           mkdir -p "${TARGET_WORKSPACE}/DEBIAN"
 
-          cat << EOF > "${TARGET_WORKSPACE}/DEBIAN/control"
+      - name: Create Package control File
+        run: |
+          cat << EOF > "${WORKSPACE_DIR}/DEBIAN/control"
           Package: ${{ matrix.suite }}-${{ matrix.component }}-${{ matrix.architecture }}-test
           Version: ${VERSION}
           Architecture: ${{ matrix.architecture }}
@@ -106,10 +108,10 @@ jobs:
           Description: A ${{ matrix.component }} ${{ matrix.architecture }} test package for ${SUITE_PRETTY_NAME}.
           EOF 
 
-      - name: Build Package Into Folder Tracking Layout
+      - name: Build Package Asset
         run: dpkg-deb --build "${WORKSPACE_DIR}" "pool/${{ matrix.suite }}/${{ matrix.component }}/${{ matrix.suite }}-${{ matrix.component }}-${{ matrix.architecture }}-test_${VERSION}_${{ matrix.architecture }}.deb"
 
-      - name: Stash Isolated Package Asset
+      - name: Stash Package Asset
         uses: actions/upload-artifact@v4
         with:
           # Unique named key system preserves all 16 tracks perfectly
@@ -117,10 +119,10 @@ jobs:
           path: pool/
 
   # =========================================================================
-  # JOB 2: PARALLEL INDEX GENERATION & SECURE CRYPTOGRAPHIC GPG SIGNING
+  # JOB 2: PARALLEL INDEX GENERATION
   # =========================================================================
   index-repository:
-    name: Generate & Sign APT Repo for ${{ matrix.suite }}
+    name: Generate Plaintext Metadata Index for ${{ matrix.suite }}
     runs-on: ubuntu-latest
     needs: [bootstrap, build-packages]
     strategy:
@@ -131,26 +133,28 @@ jobs:
       - name: Checkout Source Code
         uses: actions/checkout@v4
 
-      - name: Compute Target Distribution Pretty Name
-        run: |
-          chmod +x .github/apt/scripts/get-pretty-name.sh
-          SUITE_NAME=$(.github/apt/scripts/get-pretty-name.sh "${{ matrix.suite }}" '${{ env.REPO_SUITES }}')
-          echo "SUITE_PRETTY_NAME=${SUITE_NAME}" >> "${GITHUB_ENV}"
-
-      - name: Restore Specific Package Suite Pools
+      - name: Restore Package Pools
         uses: actions/download-artifact@v4
         with:
           pattern: package-${{ matrix.suite }}-*
           path: pool/
           merge-multiple: true
 
-      - name: Provision Apt Indexing Tools
+      - name: Install Apt Indexing Tools
         run: |
           sudo apt-get update
           sudo apt-get install -y dpkg-dev apt-utils
-          mkdir -p cache
 
-      - name: Initialize Suite Distribution Directories
+      - name: Determine Pretty Name
+        run: |
+          chmod +x .github/apt/scripts/get-pretty-name.sh
+          SUITE_NAME=$(.github/apt/scripts/get-pretty-name.sh "${{ matrix.suite }}" '${{ env.REPO_SUITES }}')
+          echo "SUITE_PRETTY_NAME=${SUITE_NAME}" >> "${GITHUB_ENV}"
+
+      - name: Create apt-ftparchive Cache Directory
+        run: mkdir -p cache
+
+      - name: Create Distribution Directory
         run: |
           # Loop through your sections dynamically from bootstrap outputs
           for SECTION in ${{ needs.bootstrap.outputs.components_string }}; do
@@ -164,7 +168,7 @@ jobs:
             mkdir -p "dists/${{ matrix.suite }}/${SECTION}/source"
           done
 
-      - name: Generate Suite apt-ftparchive Configuration via Template
+      - name: Generate apt-ftparchive Configuration File
         run: |
           export SUITE="${{ matrix.suite }}"
           export COMPONENTS="${{ needs.bootstrap.outputs.components_string }}"
@@ -175,7 +179,7 @@ jobs:
       - name: Run apt-ftparchive Index Scan
         run: apt-ftparchive generate .github/apt/apt-ftparchive-${{ matrix.suite }}.conf
 
-      - name: Generate Release Manifest via Template
+      - name: Generate Release Manifest File
         run: |
           export SUITE="${{ matrix.suite }}"
           export COMPONENTS="${{ needs.bootstrap.outputs.components_string }}"
@@ -195,7 +199,7 @@ jobs:
   # JOB 3: SECURE CRYPTOGRAPHIC GPG SIGNING BLOCK
   # =========================================================================
   sign-repository:
-    name: Cryptographically Sign Repo for ${{ matrix.suite }}
+    name: Signed Repository Index for ${{ matrix.suite }}
     runs-on: ubuntu-latest
     needs: [bootstrap, index-repository] # Waits for Job 2 to finish generating text files
     strategy:
@@ -205,21 +209,21 @@ jobs:
       - name: Checkout Source Code
         uses: actions/checkout@v4
 
-      - name: Restore Specific Package Suite Pools
+      - name: Restore Package Pools
         uses: actions/download-artifact@v4
         with:
           pattern: indexes-${{ matrix.suite }}
           path: dists/
           merge-multiple: true
 
-      - name: Import GPG Cryptographic Key Ring
+      - name: Import GPG Key Ring
         id: import-gpg
         uses: crazy-max/ghaction-import-gpg@v6
         with:
           gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
           passphrase: ${{ secrets.GPG_PASSPHRASE }}
 
-      - name: Cryptographically Lock Release Manifest
+      - name: Sign Release Manifest File
         run: |
           echo "Signing suite release manifests for target: ${{ matrix.suite }}"
           rm -f "dists/${{ matrix.suite }}/InRelease" "dists/${{ matrix.suite }}/Release.gpg"
@@ -236,13 +240,13 @@ jobs:
             --local-user "${{ steps.import-gpg.outputs.keyid }}" \
             --output "dists/${{ matrix.suite }}/Release.gpg" "dists/${{ matrix.suite }}/Release"
 
-      - name: Verify Authentic Release Manifest Signature
+      - name: Verify Release Manifest Signature
         run: |
           echo "${{ steps.import-gpg.outputs.fingerprint }}:6:" | gpg --batch --yes --import-ownertrust
           gpg --keyring ./assets/keyrings/curtistinkers-archive-keyring.gpg \
               --verify "dists/${{ matrix.suite }}/InRelease"
 
-      - name: Stash Signed Metadata Indexes
+      - name: Stash Signed Repository Index
         uses: actions/upload-artifact@v4
         with:
           name: signed-indexes-${{ matrix.suite }}
@@ -259,7 +263,7 @@ jobs:
       - name: Checkout Source Code
         uses: actions/checkout@v4
 
-      - name: Retrieve Complete Package Pools
+      - name: Retrieve All Package Pools
         uses: actions/download-artifact@v4
         with:
           pattern: package-*
@@ -273,10 +277,10 @@ jobs:
           path: dists/
           merge-multiple: true
 
-      - name: Setup Pages Infrastructure
+      - name: Setup GitHub Pages Infrastructure
         uses: actions/configure-pages@v5
 
-      - name: Compile Automated Jekyll Package Data
+      - name: Compile Package Data for Jekyll
         run: |
           mkdir -p _data
           echo "packages:" > _data/packages.yml
@@ -301,7 +305,7 @@ jobs:
             echo "Pool directory not found. Skipping data generation."
           fi
 
-      - name: Build with Jekyll
+      - name: Build Pages with Jekyll
         uses: actions/jekyll-build-pages@v1
         with:
           source: ./
