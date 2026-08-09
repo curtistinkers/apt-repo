@@ -200,3 +200,4 @@ jobs:
             dists/
             pool/
             static/
+            _data/
