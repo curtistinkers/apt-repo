@@ -104,7 +104,7 @@ jobs:
           name: intermediate-static-web
           path: static/
 
-  index-and-sign:
+  index-repository:
     name: Generate APT Repositories
     runs-on: ubuntu-latest
     needs: [build-packages, build-jekyll]
@@ -150,29 +150,6 @@ jobs:
             apt-ftparchive -c ".github/apt/${DIST}-release.conf" release "dists/${DIST}" > "dists/${DIST}/Release"
           done
 
-      # - name: Import GPG Cryptographic Key Ring
-      #   id: import-gpg
-      #   uses: crazy-max/ghaction-import-gpg@v6
-      #   with:
-      #     gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
-      #     passphrase: ${{ secrets.GPG_PASSPHRASE }}
-
-      # - name: Sign All Target Repositories
-      #   run: |
-      #     for DIST in bookworm trixie pve8 pve9; do
-      #       rm -f "dists/${DIST}/InRelease" "dists/${DIST}/Release.gpg"
-            
-      #       gpg --batch --yes --clearsign --pinentry-mode loopback \
-      #         --passphrase "${{ secrets.GPG_PASSPHRASE }}" \
-      #         --local-user "${{ steps.import-gpg.outputs.keyid }}" \
-      #         --output "dists/${DIST}/InRelease" "dists/${DIST}/Release"
-              
-      #       gpg --batch --yes --detach-sign --pinentry-mode loopback \
-      #         --passphrase "${{ secrets.GPG_PASSPHRASE }}" \
-      #         --local-user "${{ steps.import-gpg.outputs.keyid }}" \
-      #         --output "dists/${DIST}/Release.gpg" "dists/${DIST}/Release"
-      #     done
-
       - name: Output Release Validation Maps for Verification
         run: |
           for DIST in bookworm trixie pve8 pve9; do
@@ -180,10 +157,65 @@ jobs:
             cat dists/${DIST}/Release
           done
 
+      - name: Stash Plaintext Indexes
+        uses: actions/upload-artifact@v4
+        with:
+          name: intermediate-dists-indexes
+          path: dists/
+
+  sign-repository:
+    name: Cryptographically Sign Repositories
+    runs-on: ubuntu-latest
+    needs: [build-packages, build-jekyll, index-repository]
+    steps:
+      - name: Restore Package Tree
+        uses: actions/download-artifact@v4
+        with:
+          name: intermediate-pool-packages
+          path: pool/
+
+      - name: Restore Static Web Assets
+        uses: actions/download-artifact@v4
+        with:
+          name: intermediate-static-web
+          path: static/
+
+      - name: Restore Plaintext Indexes
+        uses: actions/download-artifact@v4
+        with:
+          name: intermediate-dists-indexes
+          path: dists/
+
+      - name: Import GPG Cryptographic Key Ring
+        id: import-gpg
+        uses: crazy-max/ghaction-import-gpg@v6
+        with:
+          gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
+          passphrase: ${{ secrets.GPG_PASSPHRASE }}
+
+      - name: Sign All Target Repositories
+        run: |
+          for DIST in bookworm trixie pve8 pve9; do
+            echo "Signing suite release manifests for target: ${DIST}"
+            rm -f "dists/${DIST}/InRelease" "dists/${DIST}/Release.gpg"
+            
+            # Create modern inline signatures
+            gpg --batch --yes --clearsign --pinentry-mode loopback \
+              --passphrase "${{ secrets.GPG_PASSPHRASE }}" \
+              --local-user "${{ steps.import-gpg.outputs.keyid }}" \
+              --output "dists/${DIST}/InRelease" "dists/${DIST}/Release"
+              
+            # Create legacy detached fallback signatures
+            gpg --batch --yes --detach-sign --pinentry-mode loopback \
+              --passphrase "${{ secrets.GPG_PASSPHRASE }}" \
+              --local-user "${{ steps.import-gpg.outputs.keyid }}" \
+              --output "dists/${DIST}/Release.gpg" "dists/${DIST}/Release"
+          done
+
       - name: Archive Completed System Package Layout Tree
         uses: actions/upload-artifact@v4
         with:
-          name: finalized-apt-repository-layout
+          name: signed-apt-repository-layout
           path: |
             dists/
             pool/
