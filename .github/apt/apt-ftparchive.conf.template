@@ -1,0 +1,24 @@
+Dir {
+	ArchiveDir ".";
+	CacheDir "./cache";
+};
+
+Default {
+	Packages::Compress ". gzip bzip2";
+	Sources::Compress ". gzip bzip2";
+	Contents::Compress ". gzip bzip2";
+};
+
+TreeDefault {
+	BinCacheDB "packages-\$(DIST)-\$(SECTION)-\$(ARCH).db";
+	Directory "pool/\$(DIST)/\$(SECTION)/";
+	Packages "dists/\$(DIST)/\$(SECTION)/binary-\$(ARCH)/Packages";
+	SrcDirectory "pool/\$(DIST)/\$(SECTION)";
+	Sources "dists/\$(DIST)/\$(SECTION)/source/Sources";
+	Contents "dists/\$(DIST)/Contents-\$(ARCH)";
+};
+
+Tree "${SUITE}" {
+	Sections "${COMPONENTS}";
+	Architectures "${ARCHITECTURES}";
+}

@@ -153,10 +153,24 @@ jobs:
             mkdir -p "dists/${{ matrix.suite }}/${SECTION}/source"
           done
 
-      - name: Run apt-ftparchive Index Scan
-        run: apt-ftparchive generate .github/apt/apt-ftparchive.conf
+      - name: Generate ${{ matrix.suite }} apt-ftparchive Configuration via Template
+        run: |
+          # 1. Map matrix tokens into the matching environment placeholders
+          export SUITE="${{ matrix.suite }}"
+          export COMPONENTS="${{ needs.bootstrap.outputs.components_string }}"
+          export ARCHITECTURES="${{ needs.bootstrap.outputs.architectures_string }}"
+          
+          # 2. Inject environment attributes directly into your new single template file
+          # and save it as a temporary live configuration file for this specific matrix runner
+          envsubst < .github/apt/apt-ftparchive.conf.template > .github/apt/apt-ftparchive-${{ matrix.suite }}.conf
+          
+          # 3. Verify the generated output layout in your console log
+          cat .github/apt/apt-ftparchive-${{ matrix.suite }}.conf
 
-      - name: Generate Suite Release Manifest Natively via Template
+      - name: Run apt-ftparchive Index Scan for ${{ matrix.suite }}
+        run: apt-ftparchive generate .github/apt/apt-ftparchive-${{ matrix.suite }}.conf
+
+      - name: Generate ${{ matrix.suite }} Release Manifest via Template
         run: |
           echo "Rendering dynamic metadata header profile for: ${{ matrix.suite }}"
           
