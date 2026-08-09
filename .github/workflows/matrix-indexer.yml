@@ -23,12 +23,14 @@ jobs:
 
       components: ${{ steps.export-vars.outputs.components }}
     steps:
-      - id: export-vars
+      - name: Export Environment Variables
+        id: export-vars
         run: |
           echo "Processing global arrays for matrix injection..."
-          echo "dists=${{ env.REPO_DISTS }}" >> "$GITHUB_OUTPUT"
-          echo "sections=${{ env.REPO_SECTIONS }}" >> "$GITHUB_OUTPUT"
-          echo "architectures=${{ env.REPO_ARCHITECTURES }}" >> "$GITHUB_OUTPUT"
+          # FIXED: Single quotes preserve the inner double-quotes in your JSON string array maps
+          echo 'dists=${{ env.REPO_DISTS }}' >> "$GITHUB_OUTPUT"
+          echo 'sections=${{ env.REPO_SECTIONS }}' >> "$GITHUB_OUTPUT"
+          echo 'architectures=${{ env.REPO_ARCHITECTURES }}' >> "$GITHUB_OUTPUT"
           
           # Use built-in jq to instantly generate the space-separated string companion
           COMPONENTS=$(echo '${{ env.REPO_SECTIONS }}' | jq -r '. | join(" ")')
