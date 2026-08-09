@@ -106,7 +106,7 @@ jobs:
           Architecture: ${{ matrix.architecture }}
           Maintainer: curtistinkers
           Description: A ${{ matrix.component }} ${{ matrix.architecture }} test package for ${SUITE_PRETTY_NAME}.
-          EOF 
+          EOF
 
       - name: Build Package Asset
         run: dpkg-deb --build "${WORKSPACE_DIR}" "pool/${{ matrix.suite }}/${{ matrix.component }}/${{ matrix.suite }}-${{ matrix.component }}-${{ matrix.architecture }}-test_${VERSION}_${{ matrix.architecture }}.deb"
