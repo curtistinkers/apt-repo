@@ -27,18 +27,20 @@ jobs:
       - name: Export Environment Variables
         id: export-vars
         run: |
-          echo "Processing global arrays for matrix injection..."
-          echo 'suites=${{ env.REPO_SUITES }}' >> "$GITHUB_OUTPUT"
-          echo 'components=${{ env.REPO_COMPONENTS }}' >> "$GITHUB_OUTPUT"
-          echo 'architectures=${{ env.REPO_ARCHITECTURES }}' >> "$GITHUB_OUTPUT"
-          
           # Extracts sections array to plain space-separated text string
           COMPONENTS_STRING=$(echo '${{ env.REPO_COMPONENTS }}' | jq -r '. | join(" ")')
-          echo "components_string=${COMPONENTS_STRING}" >> "$GITHUB_OUTPUT"
 
-          # ADDED: Extracts architecture array and appends "source" to match your template spec
+          # Extracts architecture array and appends "source" to match your template spec
           ARCHITECTURES_STRING=$(echo '${{ env.REPO_ARCHITECTURES }}' | jq -r '. | join(" ")')
-          echo "architectures_string=${ARCHITECTURES_STRING} source" >> "$GITHUB_OUTPUT"
+
+          # Send all context into the output at once
+          {
+            echo 'suites=${{ env.REPO_SUITES }}'
+            echo 'components=${{ env.REPO_COMPONENTS }}'
+            echo 'architectures=${{ env.REPO_ARCHITECTURES }}'
+            echo "components_string=${COMPONENTS_STRING}"
+            echo "architectures_string=${ARCHITECTURES_STRING} source"
+          } >> "$GITHUB_OUTPUT"
 
   # =========================================================================
   # JOB 1: NATIVE 16-WAY ATOMIC PARALLEL MATRIX PACKAGE COMPILATION
@@ -142,8 +144,8 @@ jobs:
           
             # Loop through your architectures dynamically
             for ARCHITECTURE in $(echo '${{ env.REPO_ARCHITECTURES }}' | jq -r '. | join(" ")'); do
-              echo "Creating directory: dists/${{ matrix.suite }}/${SECTION}/binary-${ARCH}"
-              mkdir -p "dists/${{ matrix.suite }}/${SECTION}/binary-${ARCH}"
+              echo "Creating directory: dists/${{ matrix.suite }}/${SECTION}/binary-${ARCHITECTURE}"
+              mkdir -p "dists/${{ matrix.suite }}/${SECTION}/binary-${ARCHITECTURE}"
             done
             
             # Always append the pristine source folder track per component section
