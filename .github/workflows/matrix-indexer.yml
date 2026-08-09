@@ -160,7 +160,7 @@ jobs:
           mkdir -p _data
           echo "packages:" > _data/packages.yml
           if [ -d "pool" ]; then
-            find pool/ -name "*.deb" | sort | while read -r deb; do
+            find static/pool/ -name "*.deb" | sort | while read -r deb; do
               echo "Extracting package attributes from: $deb" >&2
               pkg_name=$(dpkg-deb -f "$deb" Package)
               pkg_ver=$(dpkg-deb -f "$deb" Version)
