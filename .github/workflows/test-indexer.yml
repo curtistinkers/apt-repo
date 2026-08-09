@@ -136,6 +136,7 @@ jobs:
             for SECTION in main non-free; do
               echo "Creating directory: dists/${DIST}/${SECTION}/{binary-all,binary-amd64,source}"
               mkdir -p "dists/${DIST}/${SECTION}/{binary-all,binary-amd64,source}"
+            done
           done
 
       - name: Run apt-ftparchive Multi-Suite Index Scan
