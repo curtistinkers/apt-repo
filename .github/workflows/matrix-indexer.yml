@@ -1,0 +1,235 @@
+name: Matrix Indexer
+
+on:
+  workflow_dispatch:
+
+jobs:
+  # =========================================================================
+  # JOB 1: PARALLEL TEST PACKAGE BUILDER
+  # =========================================================================
+  build-packages:
+    name: Compile ${{ matrix.dist }}-${{ matrix.section }}-${{ matrix.arch }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        # Splits the work into 16 completely separate, isolated concurrent servers
+        dist: [bookworm, trixie, pve8, pve9]
+        section: [main, non-free]
+        arch: [all, amd64]
+    steps:
+      - name: Initialize Component Pool Target Directory
+        run: mkdir -p "pool/${{ matrix.dist }}/${{ matrix.section }}"
+
+      - name: Compile Single Atomic Package Variation
+        run: |
+          # Dynamically lock down version numbers based on matrix coordinates
+          [ "${{ matrix.arch }}" = "all" ] && [ "${{ matrix.section }}" = "main" ] && VERSION="1.0"
+          [ "${{ matrix.arch }}" = "amd64" ] && [ "${{ matrix.section }}" = "main" ] && VERSION="2.0"
+          [ "${{ matrix.arch }}" = "all" ] && [ "${{ matrix.section }}" = "non-free" ] && VERSION="3.0"
+          [ "${{ matrix.arch }}" = "amd64" ] && [ "${{ matrix.section }}" = "non-free" ] && VERSION="4.0"
+
+          # Sandbox the build workspace to prevent file collisions
+          WORKSPACE_DIR="/tmp/${{ matrix.dist }}-${{ matrix.section }}-${{ matrix.arch }}"
+          mkdir -p "${WORKSPACE_DIR}/DEBIAN"
+
+          cat << EOF > "${WORKSPACE_DIR}/DEBIAN/control"
+          Package: ${{ matrix.dist }}-${{ matrix.section }}-${{ matrix.arch }}-test
+          Version: ${VERSION}
+          Architecture: ${{ matrix.matrix.arch || matrix.arch }}
+          Maintainer: curtistinkers
+          Description: A ${{ matrix.section }} ${{ matrix.arch }} test package for ${{ matrix.dist }}.
+          EOF
+
+          # Build directly into the precise folder track matching our layout
+          dpkg-deb --build "${WORKSPACE_DIR}" "pool/${{ matrix.dist }}/${{ matrix.section }}/${{ matrix.dist }}-${{ matrix.section }}-${{ matrix.arch }}-test_${VERSION}_${{ matrix.arch }}.deb"
+
+      - name: Stash Isolated Package Asset
+        uses: actions/upload-artifact@v4
+        with:
+          # FIXED: Your exact unique named key system preserves all 16 tracks perfectly
+          name: intermediate-pool-packages-${{ matrix.dist }}-${{ matrix.section }}-${{ matrix.arch }}
+          # PERFORMANCE TWEAK: Uploading only the specific generated file path 
+          # prevents concurrent workers from uploading empty parent folder structures
+          path: pool/${{ matrix.dist }}/${{ matrix.section }}/
+
+  # =========================================================================
+  # JOB 2: UNIFIED WEBSITE LAYOUT COMPILER
+  # =========================================================================
+  build-jekyll:
+    name: Compile Staging Jekyll Layouts
+    runs-on: ubuntu-latest
+    needs: build-packages
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Collect All Parallel Package Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: pool/
+          pattern: package-*
+          merge-multiple: true # Combines all matrix package folders back into one pool/ tree
+
+      - name: Setup Pages Infrastructure
+        uses: actions/configure-pages@v5
+
+      - name: Compile Automated Jekyll Package Data
+        run: |
+          mkdir -p _data
+          echo "packages:" > _data/packages.yml
+          
+          if [ -d "pool" ]; then
+            find pool/ -name "*.deb" | sort | while read -r deb; do
+              pkg_name=$(dpkg-deb -f "$deb" Package)
+              pkg_ver=$(dpkg-deb -f "$deb" Version)
+              pkg_desc=$(dpkg-deb -f "$deb" Description | head -n 1)
+              pkg_suite=$(echo "$deb" | cut -d'/' -f2)
+              pkg_comp=$(echo "$deb" | cut -d'/' -f3)
+              pkg_file=$(basename "$deb")
+              
+              echo "  - name: \"$pkg_name\""
+              echo "    version: \"$pkg_ver\""
+              echo "    suite: \"$pkg_suite\""
+              echo "    component: \"$pkg_comp\""
+              echo "    file: \"$pkg_file\""
+              echo "    description: \"$pkg_desc\""
+            done >> _data/packages.yml
+          fi
+
+      - name: Build with Jekyll
+        uses: actions/jekyll-build-pages@v1
+        with:
+          source: ./
+          destination: ./_site
+
+      - name: Transfer Web Assets to Test Subdirectory
+        run: |
+          mkdir -p static
+          cp -r _site/* static/
+          find static/ -type f -name "*.html" -exec sed -i 's|href="/|href="./|g' {} \;
+          find static/ -type f -name "*.html" -exec sed -i 's|src="/|src="./|g' {} \;
+
+      - name: Stash Compiled Static Web Space
+        uses: actions/upload-artifact@v4
+        with:
+          name: intermediate-static-web
+          path: static/
+
+  # =========================================================================
+  # JOB 3: PARALLEL METADATA ARCHIVE COMPILATION
+  # =========================================================================
+  index-repository:
+    name: Generate APT Index for ${{ matrix.dist }}
+    runs-on: ubuntu-latest
+    needs: [build-packages, build-jekyll]
+    strategy:
+      matrix:
+        dist: [bookworm, trixie, pve8, pve9]
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Restore Multi-Suite Package Pools
+        uses: actions/download-artifact@v4
+        with:
+          pattern: intermediate-pool-packages-*
+          path: pool/
+          merge-multiple: true
+
+      - name: Provision Debian Indexing Tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y dpkg-dev apt-utils
+          mkdir -p cache
+
+      - name: Initialize Suite Distribution Directories
+        run: |
+          for SECTION in main non-free; do
+            for COMPONENT in binary-all binary-amd64 source; do
+              mkdir -p "dists/${{ matrix.matrix.dist || matrix.dist }}/${SECTION}/${COMPONENT}"
+            done
+          done
+
+      # Runs generate on the specific matrix path target matching your configuration rules
+      - name: Run apt-ftparchive Index Scan
+        run: apt-ftparchive generate .github/apt/apt-ftparchive.conf
+
+      - name: Generate Suite Release Manifest
+        run: |
+          apt-ftparchive -c ".github/apt/${{ matrix.dist }}-release.conf" release "dists/${{ matrix.matrix.dist || matrix.dist }}" > "dists/${{ matrix.matrix.dist || matrix.dist }}/Release"
+
+      # Saves into an isolated directory payload track per distribution
+      - name: Stash Intermediate Suite Indexes
+        uses: actions/upload-artifact@v4
+        with:
+          name: intermediate-dists-indexes-${{ matrix.dist }}
+          path: dists/${{ matrix.matrix.dist || matrix.dist }}/
+
+  # =========================================================================
+  # JOB 4: SECURE CRYPTOGRAPHIC GPG SIGNING BLOCK
+  # =========================================================================
+  sign-repository:
+    name: Cryptographically Sign Repositories
+    runs-on: ubuntu-latest
+    needs: [build-packages, build-jekyll, index-repository]
+    steps:
+      - name: Restore Multi-Suite Package Pools
+        uses: actions/download-artifact@v4
+        with:
+          pattern: intermediate-pool-packages-*
+          path: pool/
+          merge-multiple: true
+
+      - name: Restore Static Web Assets
+        uses: actions/download-artifact@v4
+        with:
+          name: intermediate-static-web
+          path: static/
+
+      # Pulls down all 4 parallel index datasets generated by Job 3
+      - name: Restore All Suite Indexes
+        uses: actions/download-artifact@v4
+        with:
+          pattern: intermediate-dists-indexes-*
+          path: dists/
+          merge-multiple: true
+
+      - name: Import GPG Cryptographic Key Ring
+        id: import-gpg
+        uses: crazy-max/ghaction-import-gpg@v6
+        with:
+          gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
+          passphrase: ${{ secrets.GPG_PASSPHRASE }}
+
+      - name: Sign All Target Repositories
+        run: |
+          for DIST in bookworm trixie pve8 pve9; do
+            echo "Signing suite release manifests for target: ${DIST}"
+            rm -f "dists/${DIST}/InRelease" "dists/${DIST}/Release.gpg"
+            
+            gpg --batch --yes --clearsign --pinentry-mode loopback \
+              --passphrase "${{ secrets.GPG_PASSPHRASE }}" \
+              --local-user "${{ steps.import-gpg.outputs.keyid }}" \
+              --output "dists/${DIST}/InRelease" "dists/${DIST}/Release"
+              
+            gpg --batch --yes --detach-sign --pinentry-mode loopback \
+              --passphrase "${{ secrets.GPG_PASSPHRASE }}" \
+              --local-user "${{ steps.import-gpg.outputs.keyid }}" \
+              --output "dists/${DIST}/Release.gpg" "dists/${DIST}/Release"
+          done
+
+      - name: Cryptographically Verify Generated Signatures
+        run: |
+          for DIST in bookworm trixie pve8 pve9; do
+            echo "Checking verification status for suite: ${DIST}"
+            gpg --verify "dists/${DIST}/InRelease"
+          done
+
+      - name: Archive Completed System Package Layout Tree
+        uses: actions/upload-artifact@v4
+        with:
+          name: finalized-apt-repository-layout
+          path: |
+            dists/
+            pool/
+            static/
