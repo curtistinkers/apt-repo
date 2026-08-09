@@ -219,7 +219,11 @@ jobs:
             --output "dists/${{ matrix.suite }}/Release.gpg" "dists/${{ matrix.suite }}/Release"
 
       - name: Verify Authentic Signature Output Status
-        run: gpg --verify "dists/${{ matrix.suite }}/InRelease"
+        run: |
+          echo "=== Verifying Signature Against Repository Public Keyring ==="
+          gpg --keyring ./assets/keyrings/curtistinkers-archive-keyring1.gpg \
+              --no-default-keyring \
+              --verify "dists/${{ matrix.suite }}/InRelease"
 
       - name: Stash Signed Metadata Indexes
         uses: actions/upload-artifact@v4
