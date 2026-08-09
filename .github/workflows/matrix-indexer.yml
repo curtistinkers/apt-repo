@@ -35,7 +35,7 @@ jobs:
           cat << EOF > "${WORKSPACE_DIR}/DEBIAN/control"
           Package: ${{ matrix.dist }}-${{ matrix.section }}-${{ matrix.arch }}-test
           Version: ${VERSION}
-          Architecture: ${{ matrix.matrix.arch || matrix.arch }}
+          Architecture: ${{ matrix.arch }}
           Maintainer: curtistinkers
           Description: A ${{ matrix.section }} ${{ matrix.arch }} test package for ${{ matrix.dist }}.
           EOF
@@ -146,7 +146,7 @@ jobs:
         run: |
           for SECTION in main non-free; do
             for COMPONENT in binary-all binary-amd64 source; do
-              mkdir -p "dists/${{ matrix.matrix.dist || matrix.dist }}/${SECTION}/${COMPONENT}"
+              mkdir -p "dists/${{ matrix.dist }}/${SECTION}/${COMPONENT}"
             done
           done
 
@@ -156,14 +156,14 @@ jobs:
 
       - name: Generate Suite Release Manifest
         run: |
-          apt-ftparchive -c ".github/apt/${{ matrix.dist }}-release.conf" release "dists/${{ matrix.matrix.dist || matrix.dist }}" > "dists/${{ matrix.matrix.dist || matrix.dist }}/Release"
+          apt-ftparchive -c ".github/apt/${{ matrix.dist }}-release.conf" release "dists/${{ matrix.dist }}" > "dists/${{ matrix.dist }}/Release"
 
       # Saves into an isolated directory payload track per distribution
       - name: Stash Intermediate Suite Indexes
         uses: actions/upload-artifact@v4
         with:
           name: intermediate-dists-indexes-${{ matrix.dist }}
-          path: dists/${{ matrix.matrix.dist || matrix.dist }}/
+          path: dists/${{ matrix.dist }}/
 
   # =========================================================================
   # JOB 4: SECURE CRYPTOGRAPHIC GPG SIGNING BLOCK
