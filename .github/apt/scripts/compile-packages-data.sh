@@ -46,18 +46,32 @@ echo "Scanning plain-text index manifests for high-performance table generation.
 # 3. RECURSIVELY PROCESS AND CONVERT PLAIN-TEXT REPO INDEXES TO YAML
 # ------------------------------------------------------------------------------
 find dists/ -type f -name "Packages" | sort | while read -r INDEX_FILE; do
-    echo "Parsing index map file path: ${INDEX_FILE}" >&2
+    echo "=== START DEBUG LOG FOR FILE: ${INDEX_FILE} ===" >&2
     
-    # EXTRACT CONTEXT DIRECTLY FROM THE DIRECTORY PATH
-    # Example path: dists/bookworm/main/binary-all/Packages
-    CURRENT_SUITE=$(echo "${INDEX_FILE}" | cut -d'/' -f2)      # Extracts: bookworm
-    CURRENT_COMPONENT=$(echo "${INDEX_FILE}" | cut -d'/' -f3)  # Extracts: main
+    # Check if the file is completely empty before passing to awk
+    if [ ! -s "${INDEX_FILE}" ]; then
+        echo "  [DIAGNOSTIC] File exists but is 0 bytes (empty). Skipping blocks." >&2
+        echo "=== END DEBUG LOG ===" >&2
+        continue
+    fi
 
-    # 3. Process text paragraphs cleanly using explicit Bash environment injection
+    # Read the first 15 lines of the manifest to see exactly how fields are formatted
+    echo "  [DIAGNOSTIC] Displaying top context headers raw text:" >&2
+    head -n 15 "${INDEX_FILE}" | sed 's/^/    | /' >&2
+
+    CURRENT_SUITE=$(echo "${INDEX_FILE}" | cut -d'/' -f2)
+    CURRENT_COMPONENT=$(echo "${INDEX_FILE}" | cut -d'/' -f3)
+
+    echo "  [DIAGNOSTIC] Extracted context: Suite='${CURRENT_SUITE}', Component='${CURRENT_COMPONENT}'" >&2
+    echo "  [DIAGNOSTIC] Executing text extraction matrix..." >&2
+
+    # Run awk with interior print trackers
     awk -v suite="${CURRENT_SUITE}" -v component="${CURRENT_COMPONENT}" '
         BEGIN { FS=": "; RS="" }
         {
             pkg="" ; ver="" ; desc="" ; file=""
+            block_count++
+            
             for(i=1; i<=NF; i++) {
                 if($i ~ /^Package/)     { pkg=substr($0, index($0, $i)+length($i)+2); sub(/\n.*/, "", pkg) }
                 if($i ~ /^Version/)     { ver=substr($0, index($0, $i)+length($i)+2); sub(/\n.*/, "", ver) }
@@ -65,22 +79,31 @@ find dists/ -type f -name "Packages" | sort | while read -r INDEX_FILE; do
                 if($i ~ /^Filename/)    { file=substr($0, index($0, $i)+length($i)+2); sub(/\n.*/, "", file) }
             }
             
+            # Diagnostic: Report what variables were extracted from this specific text paragraph block
+            print "    - Block #" block_count ": Found Pkg=[" pkg "], Ver=[" ver "], File=[" file "]" > "/dev/stderr"
+            
             if(file != "") {
-                # Extract just the flat package filename from the end of the line
-                # Example: ./pool/bookworm/main/test.deb -> test.deb
                 split(file, file_parts, "/")
                 filename=file_parts[length(file_parts)]
                 
-                # Print the perfect formatted YAML properties directly
                 print "  - name: \"" pkg "\""
                 print "    version: \"" ver "\""
                 print "    suite: \"" suite "\""
                 print "    component: \"" component "\""
                 print "    file: \"" filename "\""
                 print "    description: \"" desc "\""
+                
+                print "      -> SUCCESSFULLY MATCHED AND WRITTEN PACKAGES ENTRY TO YAML STACK" > "/dev/stderr"
+            } else {
+                print "      -> WARNING: Skipping block #" block_count " because Filename field is empty" > "/dev/stderr"
             }
         }
+        END {
+            print "  [DIAGNOSTIC] Total blocks evaluated inside this file: " block_count > "/dev/stderr"
+        }
     ' "${INDEX_FILE}" >> "${OUTPUT_FILE}"
+    
+    echo "=== END DEBUG LOG FOR FILE: ${INDEX_FILE} ===" >&2
 done
 
 echo "Apt repository data successfully written to: ${OUTPUT_FILE}"
