@@ -205,7 +205,7 @@ jobs:
       - name: Verify Release Manifest Signature
         run: |
           echo "${{ steps.import-gpg.outputs.fingerprint }}:6:" | gpg --batch --yes --import-ownertrust
-          gpg --keyring ./assets/keyrings/curtistinkers-archive-keyring.gpg \
+          gpg --keyring ./curtistinkers-archive-keyring.gpg \
               --verify "dists/${{ matrix.suite }}/InRelease"
 
       - name: Stash Signed Repository Index
