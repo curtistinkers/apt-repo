@@ -45,8 +45,8 @@ echo "Scanning plain-text index manifests for high-performance table generation.
 # ------------------------------------------------------------------------------
 # 3. RECURSIVELY PROCESS AND CONVERT PLAIN-TEXT REPO INDEXES TO YAML
 # ------------------------------------------------------------------------------
-find dists/ -type f -name "Packages" | sort | while read -r index_file; do
-    echo "Parsing index map: ${index_file}" >&2
+find dists/ -type f -name "Packages" | sort | while read -r INDEX_FILE; do
+    echo "Parsing index map: ${INDEX_FILE}" >&2
     
     awk '
         BEGIN { FS=": "; RS="" }
@@ -74,8 +74,9 @@ find dists/ -type f -name "Packages" | sort | while read -r index_file; do
                 print "    description: \"" desc "\""
             }
         }
-    ' "${index_file}" >> "${OUTPUT_FILE}"
+    ' "${INDEX_FILE}" >> "${OUTPUT_FILE}"
 done
 
 echo "Apt repository data successfully written to: ${OUTPUT_FILE}"
+cat "${OUTPUT_FILE}"
 exit 0
