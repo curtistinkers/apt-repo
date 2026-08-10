@@ -140,7 +140,7 @@ jobs:
             for COMPONENT in ${COMPONENTS}; do
               {
                 printf 'BinDirectory "dists/%s/%s/binary-%s" {\n' "${SUITE}" "${COMPONENT}" "${ARCH}"
-                printf '\tDirectory "pool/universal/%s";\n' "${COMPONENT}"
+                printf '\tDirectory "pool/universal/%s/binary-%s";\n' "${COMPONENT}" "${ARCH}"
                 printf '\tPackages "dists/%s/%s/binary-%s/Packages";\n' "${SUITE}" "${COMPONENT}" "${ARCH}"
                 printf '\tBinCacheDB "packages-%s-universal-%s-%s.db";\n' "${SUITE}" "${COMPONENT}" "${ARCH}"
                 printf '};\n'
