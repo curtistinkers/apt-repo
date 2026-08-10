@@ -324,4 +324,4 @@ jobs:
         run: |
           echo "Initiating secure block-level incremental sync over Zero Trust proxy..."
           rsync -avz --delete \
-            ./ aptrepo@://curtistinkers.com:/user/aptrepo/apt-repo
+            ./ aptrepo@://curtistinkers.com:/var/www/apt-repo
