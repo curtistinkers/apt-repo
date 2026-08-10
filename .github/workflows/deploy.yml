@@ -185,18 +185,24 @@ jobs:
           for COMPONENT in ${{ needs.bootstrap.outputs.components_string }}; do
             for ARCH in ${{ needs.bootstrap.outputs.architectures_string }}; do
               PACKAGE_FILE="dists/${{ matrix.suite }}/${COMPONENT}/binary-${ARCH}/Packages"
-              if [ -f "${PACKAGE_FILE}" ]; then
+              if [ -s "${PACKAGE_FILE}" ]; then
                 {
                   echo ""
-                  echo "##"
-                  echo "## START ${PACKAGE_FILE}"
-                  echo "##"
-                  echo ""
+                  echo "## ------------------------------------------------------------------------"
+                  echo "## START [${PACKAGE_FILE}]"
+                  echo "## ------------------------------------------------------------------------"
                   cat "${PACKAGE_FILE}"
+                  echo "## ------------------------------------------------------------------------"
+                  echo "## END [${PACKAGE_FILE}]"
+                  echo "## ------------------------------------------------------------------------"
                   echo ""
-                  echo "##"
-                  echo "## END ${PACKAGE_FILE}"
-                  echo "##"
+                }
+              else
+                {
+                  echo ""
+                  echo "## ------------------------------------------------------------------------"
+                  echo "## NOTICE: [${PACKAGE_FILE}] is empty (0 bytes)"
+                  echo "## ------------------------------------------------------------------------"
                   echo ""
                 }
               fi
