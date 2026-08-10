@@ -295,8 +295,8 @@ jobs:
       - name: Install Cloudflare Tunnel Client
         run: |
           echo "Downloading official cloudflared Debian package..."
-          curl -L https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb -o cloudflared.deb
-          sudo dpkg -i cloudflared.deb
+          curl -L https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb -o /tmp/cloudflared.deb
+          sudo dpkg -i /tmp/cloudflared.deb
           cloudflared --version
 
       # 3. Configure the local SSH client environment to natively route through Cloudflare
