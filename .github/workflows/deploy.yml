@@ -119,19 +119,13 @@ jobs:
 
       - name: Create Distribution Directory
         run: |
+          # Loop through your sections dynamically from bootstrap outputs
           for SECTION in ${{ needs.bootstrap.outputs.components_string }}; do
-            # 1. FIXED: Pre-initialize universal component subfolders natively
-            # This ensures tracks like pool/universal/non-free/binary-all exist on disk
-            for ARCHITECTURE in $(echo '${{ env.REPO_ARCHITECTURES }}' | jq -r '. | join(" ")'); do
-              mkdir -p "pool/universal/${SECTION}/binary-${ARCHITECTURE}"
-              
-              # 2. Pre-initialize standard suite distribution paths
+            # Loop through your architectures dynamically
+            for ARCHITECTURE in ${{ needs.bootstrap.outputs.architectures_string }}; do
               echo "Creating directory: dists/${{ matrix.suite }}/${SECTION}/binary-${ARCHITECTURE}"
               mkdir -p "dists/${{ matrix.suite }}/${SECTION}/binary-${ARCHITECTURE}"
             done
-            
-            # 3. FIXED: Guard your standard suite package pools against empty-state crashes
-            mkdir -p "pool/${{ matrix.suite }}/${SECTION}"
           done
 
       - name: Generate apt-ftparchive Configuration File
@@ -139,32 +133,18 @@ jobs:
           export SUITE="${{ matrix.suite }}"
           export COMPONENTS="${{ needs.bootstrap.outputs.components_string }}"
           export ARCHITECTURES="${{ needs.bootstrap.outputs.architectures_string }}"
-          
           envsubst < .github/apt/apt-ftparchive.conf.template > .github/apt/apt-ftparchive-${{ matrix.suite }}.conf
-
-          for ARCH in ${ARCHITECTURES}; do
-            for COMPONENT in ${COMPONENTS}; do
-              {
-                printf 'BinDirectory "dists/%s/%s/binary-%s" {\n' "${SUITE}" "${COMPONENT}" "${ARCH}"
-                printf '\tDirectory "pool/universal/%s/binary-%s";\n' "${COMPONENT}" "${ARCH}"
-                printf '\tPackages "dists/%s/%s/binary-%s/Packages";\n' "${SUITE}" "${COMPONENT}" "${ARCH}"
-                printf '\tBinCacheDB "packages-%s-universal-%s-%s.db";\n' "${SUITE}" "${COMPONENT}" "${ARCH}"
-                printf '};\n'
-              } >> ".github/apt/apt-ftparchive-${SUITE}.conf"
-            done
-          done
-          
-          cat .github/apt/apt-ftparchive-${{ matrix.suite }}.conf
 
       - name: Run apt-ftparchive Index Scan
         run: |
           # 1. Run your standard suite index compilation exactly like before
           apt-ftparchive generate .github/apt/apt-ftparchive-${{ matrix.suite }}.conf
-          
-          # 2. FIXED: Universal Universal Appender Matrix Loop
+
+      - name: Append Universal Packages
+        run: |
           # Loops through your components and architectures dynamically to scan and append data
           for COMPONENT in ${{ needs.bootstrap.outputs.components_string }}; do
-            for ARCH in $(echo '${{ env.REPO_ARCHITECTURES }}' | jq -r '. | join(" ")'); do
+            for ARCH in ${{ needs.bootstrap.outputs.architectures_string }}; do
               TARGET_DIR="pool/universal/${COMPONENT}/binary-${ARCH}"
               TARGET_MANIFEST="dists/${{ matrix.suite }}/${COMPONENT}/binary-${ARCH}/Packages"
               
@@ -178,9 +158,10 @@ jobs:
             done
           done
           
-          # 3. Regenerate the compression layers so your final Release manifest mirrors correctly
+      - name: Regenerate Package List Compression
+        run: |
           for COMPONENT in ${{ needs.bootstrap.outputs.components_string }}; do
-            for ARCH in $(echo '${{ env.REPO_ARCHITECTURES }}' | jq -r '. | join(" ")'); do
+            for ARCH in ${{ needs.bootstrap.outputs.architectures_string }}; do
               TARGET_MANIFEST="dists/${{ matrix.suite }}/${COMPONENT}/binary-${ARCH}/Packages"
               if [ -f "${TARGET_MANIFEST}" ]; then
                 gzip -fk "${TARGET_MANIFEST}"
