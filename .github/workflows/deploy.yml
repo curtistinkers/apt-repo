@@ -48,6 +48,15 @@ jobs:
 
       - name: Run Actionlint Workflow Validator
         uses: raven-actions/actionlint@v2
+
+      - name: Run ShellCheck Script Validator
+        uses: ludeeus/action-shellcheck@master
+        with:
+          # Targets specifically your script directories
+          scandir: '.github/apt/scripts'
+        env:
+          # Enforces strict Bash checking mode
+          SHELLCHECK_OPTS: -s bash
   # =========================================================================
   # JOB 2: BOOTSTRAP ENVIRONMENT CALCULATOR
   # =========================================================================
