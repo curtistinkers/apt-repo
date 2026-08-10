@@ -53,7 +53,7 @@ jobs:
         uses: ludeeus/action-shellcheck@master
         with:
           # Targets specifically your script directories
-          scandir: '.github/apt/scripts'
+          scandir: '.github/scripts'
         env:
           # Enforces strict Bash checking mode
           SHELLCHECK_OPTS: -s bash
@@ -110,8 +110,8 @@ jobs:
 
       - name: Determine Pretty Name
         run: |
-          chmod +x .github/apt/scripts/get-pretty-name.sh
-          SUITE_NAME=$(.github/apt/scripts/get-pretty-name.sh "${{ matrix.suite }}" '${{ env.REPO_SUITES }}')
+          chmod +x .github/scripts/get-pretty-name.sh
+          SUITE_NAME=$(.github/scripts/get-pretty-name.sh "${{ matrix.suite }}" '${{ env.REPO_SUITES }}')
           echo "SUITE_PRETTY_NAME=${SUITE_NAME}" >> "${GITHUB_ENV}"
 
       - name: Create apt-ftparchive Cache Directory
@@ -237,11 +237,11 @@ jobs:
       - name: Compile Jekyll Package Data from Apt Indexes
         run: |
           # 1. Enforce executable file tracking flags across both script assets
-          chmod +x .github/apt/scripts/scan-repository-indexes.sh
-          chmod +x .github/apt/scripts/compile-packages-data.sh
+          chmod +x .github/scripts/scan-repository-indexes.sh
+          chmod +x .github/scripts/compile-packages-data.sh
           
           # 2. Fire up the master discovery scanner controller script
-          .github/apt/scripts/scan-repository-indexes.sh
+          .github/scripts/scan-repository-indexes.sh
 
       - name: Build Pages with Jekyll
         uses: actions/jekyll-build-pages@v1
