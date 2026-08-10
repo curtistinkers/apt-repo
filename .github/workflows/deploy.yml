@@ -77,7 +77,7 @@ jobs:
           # Extracts sections array to plain space-separated text string
           COMPONENTS_STRING=$(echo '${{ env.REPO_COMPONENTS }}' | jq -r '. | join(" ")')
 
-          # Extracts architecture array and appends "source" to match your template spec
+          # Extracts architecture array to plain space-separated text string
           ARCHITECTURES_STRING=$(echo '${{ env.REPO_ARCHITECTURES }}' | jq -r '. | join(" ")')
 
           # Send all context into the output at once
@@ -86,7 +86,7 @@ jobs:
             echo 'components=${{ env.REPO_COMPONENTS }}'
             echo 'architectures=${{ env.REPO_ARCHITECTURES }}'
             echo "components_string=${COMPONENTS_STRING}"
-            echo "architectures_string=${ARCHITECTURES_STRING} source"
+            echo "architectures_string=${ARCHITECTURES_STRING}"
           } >> "$GITHUB_OUTPUT"
   # =========================================================================
   # JOB 3: PARALLEL INDEX GENERATION
@@ -149,7 +149,7 @@ jobs:
           cat .github/apt/apt-ftparchive-${{ matrix.suite }}.conf
 
       - name: Run apt-ftparchive Index Scan
-        run: apt-ftparchive generate .github/apt/apt-ftparchive-${{ matrix.suite }}.conf
+        run: apt-ftparchive -o Debug::pkgCacheGen=true generate .github/apt/apt-ftparchive-${{ matrix.suite }}.conf
 
       - name: Generate Release Manifest File
         run: |
