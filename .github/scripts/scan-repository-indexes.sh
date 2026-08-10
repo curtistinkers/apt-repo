@@ -19,7 +19,7 @@ set -euo pipefail
 DEBUG_MODE="true"
 
 # Define shared script execution relative paths
-SCRIPT_DIR=".github/apt/scripts"
+SCRIPT_DIR=".github/scripts"
 PARSER_SCRIPT="${SCRIPT_DIR}/compile-packages-data.sh"
 
 OUTPUT_DIR="_data"
