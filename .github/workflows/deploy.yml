@@ -136,8 +136,8 @@ jobs:
           
           envsubst < .github/apt/apt-ftparchive.conf.template > .github/apt/apt-ftparchive-${{ matrix.suite }}.conf
 
-          for ARCH in "${ARCHITECTURES}"; do
-            for COMPONENT in "${COMPONENTS}"; do
+          for ARCH in ${ARCHITECTURES}; do
+            for COMPONENT in ${COMPONENTS}; do
               {
                 printf 'BinDirectory "dists/%s/%s/binary-%s" {\n' "${SUITE}" "${COMPONENT}" "${ARCH}"
                 printf '\tDirectory "pool/universal/%s";\n' ${COMPONENT}
