@@ -157,7 +157,37 @@ jobs:
           cat .github/apt/apt-ftparchive-${{ matrix.suite }}.conf
 
       - name: Run apt-ftparchive Index Scan
-        run: apt-ftparchive -o Debug::pkgCacheGen=true generate .github/apt/apt-ftparchive-${{ matrix.suite }}.conf
+        run: |
+          # 1. Run your standard suite index compilation exactly like before
+          apt-ftparchive generate .github/apt/apt-ftparchive-${{ matrix.suite }}.conf
+          
+          # 2. FIXED: Universal Universal Appender Matrix Loop
+          # Loops through your components and architectures dynamically to scan and append data
+          for COMPONENT in ${{ needs.bootstrap.outputs.components_string }}; do
+            for ARCH in $(echo '${{ env.REPO_ARCHITECTURES }}' | jq -r '. | join(" ")'); do
+              TARGET_DIR="pool/universal/${COMPONENT}/binary-${ARCH}"
+              TARGET_MANIFEST="dists/${{ matrix.suite }}/${COMPONENT}/binary-${ARCH}/Packages"
+              
+              # Verify the physical folder holds data before attempting a scan
+              if [ -d "${TARGET_DIR}" ] && [ "$(find "${TARGET_DIR}" -type f -name "*.deb" 2>/dev/null)" ]; then
+                echo "Appending universal packages from ${TARGET_DIR} into ${TARGET_MANIFEST}..."
+                
+                # Scans the target folder and appends plaintext blocks directly to the suite manifest
+                apt-ftparchive packages "${TARGET_DIR}" >> "${TARGET_MANIFEST}"
+              fi
+            done
+          done
+          
+          # 3. Regenerate the compression layers so your final Release manifest mirrors correctly
+          for COMPONENT in ${{ needs.bootstrap.outputs.components_string }}; do
+            for ARCH in $(echo '${{ env.REPO_ARCHITECTURES }}' | jq -r '. | join(" ")'); do
+              TARGET_MANIFEST="dists/${{ matrix.suite }}/${COMPONENT}/binary-${ARCH}/Packages"
+              if [ -f "${TARGET_MANIFEST}" ]; then
+                gzip -fk "${TARGET_MANIFEST}"
+                bzip2 -fk "${TARGET_MANIFEST}"
+              fi
+            done
+          done
 
       - name: Generate Release Manifest File
         run: |
