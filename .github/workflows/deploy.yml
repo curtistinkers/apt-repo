@@ -137,11 +137,14 @@ jobs:
           envsubst < .github/apt/apt-ftparchive.conf.template > .github/apt/apt-ftparchive-${{ matrix.suite }}.conf
 
           for ARCH in ${ARCHITECTURES}; do
-            printf 'BinDirectory "dists/%s/main/binary-%s" {\n' "${SUITE}" "${ARCH}" >> .github/apt/apt-ftparchive-${SUITE}.conf
-            printf '\tDirectory "pool/universal/";\n' >> .github/apt/apt-ftparchive-${SUITE}.conf
-            printf '\tPackages "dists/%s/main/binary-%s/Packages";\n' "${SUITE}" "${ARCH}" >> .github/apt/apt-ftparchive-${SUITE}.conf
-            printf '\tBinCacheDB "packages-%s-universal-%s.db";\n' "${SUITE}" "${ARCH}" >> .github/apt/apt-ftparchive-${SUITE}.conf
-            printf '};\n' >> .github/apt/apt-ftparchive-${SUITE}.conf
+            # FIXED: Groups all printfs to open the file descriptor exactly once
+            {
+              printf 'BinDirectory "dists/%s/main/binary-%s" {\n' "${SUITE}" "${ARCH}"
+              printf '\tDirectory "pool/universal/";\n'
+              printf '\tPackages "dists/%s/main/binary-%s/Packages";\n' "${SUITE}" "${ARCH}"
+              printf '\tBinCacheDB "packages-%s-universal-%s.db";\n' "${SUITE}" "${ARCH}"
+              printf '};\n'
+            } >> .github/apt/apt-ftparchive-${SUITE}.conf
           done
           
           cat .github/apt/apt-ftparchive-${{ matrix.suite }}.conf
