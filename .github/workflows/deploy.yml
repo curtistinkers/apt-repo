@@ -119,13 +119,19 @@ jobs:
 
       - name: Create Distribution Directory
         run: |
-          # Loop through your sections dynamically from bootstrap outputs
           for SECTION in ${{ needs.bootstrap.outputs.components_string }}; do
-            # Loop through your architectures dynamically
+            # 1. FIXED: Pre-initialize universal component subfolders natively
+            # This ensures tracks like pool/universal/non-free/binary-all exist on disk
             for ARCHITECTURE in $(echo '${{ env.REPO_ARCHITECTURES }}' | jq -r '. | join(" ")'); do
+              mkdir -p "pool/universal/${SECTION}/binary-${ARCHITECTURE}"
+              
+              # 2. Pre-initialize standard suite distribution paths
               echo "Creating directory: dists/${{ matrix.suite }}/${SECTION}/binary-${ARCHITECTURE}"
               mkdir -p "dists/${{ matrix.suite }}/${SECTION}/binary-${ARCHITECTURE}"
             done
+            
+            # 3. FIXED: Guard your standard suite package pools against empty-state crashes
+            mkdir -p "pool/${{ matrix.suite }}/${SECTION}"
           done
 
       - name: Generate apt-ftparchive Configuration File
