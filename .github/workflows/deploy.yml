@@ -126,9 +126,6 @@ jobs:
               echo "Creating directory: dists/${{ matrix.suite }}/${SECTION}/binary-${ARCHITECTURE}"
               mkdir -p "dists/${{ matrix.suite }}/${SECTION}/binary-${ARCHITECTURE}"
             done
-            # Always append the pristine source folder track per component section
-            echo "Creating directory: dists/${{ matrix.suite }}/${SECTION}/source"
-            mkdir -p "dists/${{ matrix.suite }}/${SECTION}/source"
           done
 
       - name: Generate apt-ftparchive Configuration File
@@ -136,7 +133,19 @@ jobs:
           export SUITE="${{ matrix.suite }}"
           export COMPONENTS="${{ needs.bootstrap.outputs.components_string }}"
           export ARCHITECTURES="${{ needs.bootstrap.outputs.architectures_string }}"
+          
           envsubst < .github/apt/apt-ftparchive.conf.template > .github/apt/apt-ftparchive-${{ matrix.suite }}.conf
+          
+          for ARCH in ${{ needs.bootstrap.outputs.architectures_string }}; do
+            cat << EOF >> .github/apt/apt-ftparchive-${{ matrix.suite }}.conf
+            BinDirectory "dists/${SUITE}/main/binary-${ARCH}" {
+              Directory "pool/universal/";
+              Packages "dists/${SUITE}/main/binary-${ARCH}/Packages";
+              BinCacheDB "packages-${SUITE}-universal-${ARCH}.db";
+            };
+            EOF
+          done
+          
           cat .github/apt/apt-ftparchive-${{ matrix.suite }}.conf
 
       - name: Run apt-ftparchive Index Scan

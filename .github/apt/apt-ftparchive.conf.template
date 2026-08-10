@@ -22,10 +22,3 @@ Tree "${SUITE}" {
 	Sections "${COMPONENTS}"; # Links strictly to pool/${SUITE}/${COMPONENTS}
 	Architectures "${ARCHITECTURES}";
 }
-
-Tree "${SUITE}-universal" {
-	Directory "pool/universal/";
-	Sections "${COMPONENTS}";
-	Architectures "${ARCHITECTURES}";
-	Packages "dists/${SUITE}/$(SECTION)/binary-$(ARCH)/Packages";
-}
