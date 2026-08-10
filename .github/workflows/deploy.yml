@@ -186,14 +186,20 @@ jobs:
             for ARCH in ${{ needs.bootstrap.outputs.architectures_string }}; do
               PACKAGE_FILE="dists/${{ matrix.suite }}/${COMPONENT}/binary-${ARCH}/Packages"
               if [ -f "${PACKAGE_FILE}" ]; then
-                printf '\n##\n'
-                printf '## START %s' "${PACKAGE_FILE}"
-                printf '\n##\n'
-                cat "${PACKAGE_FILE}"
-                printf '\n##\n'
-                printf '## END %s' "${PACKAGE_FILE}"
-                printf '\n##\n'
-              else
+                {
+                  echo ""
+                  echo "##"
+                  echo "## START ${PACKAGE_FILE}"
+                  echo "##"
+                  echo ""
+                  cat "${PACKAGE_FILE}"
+                  echo ""
+                  echo "##"
+                  echo "## END ${PACKAGE_FILE}"
+                  echo "##"
+                  echo ""
+                }
+              fi
             done
           done
 
