@@ -312,7 +312,7 @@ jobs:
           # Set up an automated routing rule inside the SSH config ledger
           # Every time SSH hits your domain, it passes through cloudflared using your Service Token headers
           cat << EOF > ~/.ssh/config
-          Host *.curtistinkers.com
+          Host curtistinkers.com
             ProxyCommand /usr/local/bin/cloudflared access ssh --id ${{ secrets.CF_CLIENT_ID }} --secret ${{ secrets.CF_CLIENT_SECRET }} --hostname %h
             IdentityFile ~/.ssh/id_ed25519
             StrictHostKeyChecking no
@@ -324,4 +324,4 @@ jobs:
         run: |
           echo "Initiating secure block-level incremental sync over Zero Trust proxy..."
           rsync -avz --delete \
-            ./ aptrepo@://curtistinkers.com:/var/www/apt-repo
+            ./ aptrepo@curtistinkers.com:/var/www/apt-repo
