@@ -27,7 +27,7 @@ RAW_JSON_ARRAY="$2"
 # 2. PARSE GLOBAL REPO MATRIX DIRECTLY INTO NATIVE BASH ARRAYS
 # ------------------------------------------------------------------------------
 # jq -r '.[]' cleanly converts '["a", "b"]' into a safe space-separated text stream
-SUITES_ARRAY=($(echo "${RAW_JSON_ARRAY}" | jq -r '.[]'))
+mapfile -t SUITES_ARRAY < <(jq -r '.[]' <<<"${RAW_JSON_ARRAY}")
 
 # Default the flag state machine to classic Debian classification rules
 CURRENT_OS_TYPE="Debian"
