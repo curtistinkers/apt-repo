@@ -1,152 +1,118 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# PLAIN-TEXT APT MANIFEST PARSER FOR JEKYLL
+# AUTOMATED PLAIN-TEXT APT MANIFEST PARSER ENGINE
 # ==============================================================================
 # Target Path: .github/apt/scripts/compile-packages-data.sh
-# Usage: ./compile-packages-data.sh
+# Usage: ./compile-packages-data.sh <target_index_file> <debug_mode_flag>
 #
 # Description:
-#   Recursively scans uncompressed 'Packages' manifests inside the 'dists/'
-#   directory. Uses an awk text processing block to extract core 
-#   metadata (Package, Version, Description, Filename) and formats it into 
-#   a single structured '_data/packages.yml' database for Jekyll site loops.
-#
-# Non-Failing Guard:
-#   If the 'dists/' folder is missing or contains no index data, the script
-#   safely creates an empty database file and exits gracefully (status 0)
-#   so the main web compilation step does not fail.
+#   Processes a single uncompressed Debian 'Packages' manifest file.
+#   Extracts context metrics from the directory structure track path,
+#   runs a robust line-by-line awk filter, and streams out the cleanly 
+#   formatted YAML property rows straight to standard output (stdout).
 # ==============================================================================
 set -euo pipefail
 
-DEBUG_MODE="true"
+# 1. Input Argument Validation Gate
+if [ "$#" -ne 2 ]; then
+    echo "ERROR: Missing required input parameters." >&2
+    echo "Usage: $0 <target_index_file> <debug_mode_flag>" >&2
+    exit 1
+fi
 
-# Initialize clean output destination variables
-OUTPUT_DIR="_data"
-OUTPUT_FILE="${OUTPUT_DIR}/packages.yml"
+INDEX_FILE="$1"
+DEBUG_MODE="$2"
 
-mkdir -p "${OUTPUT_DIR}"
-
-# ------------------------------------------------------------------------------
-# 1. NON-FAILING ENVIRONMENTAL GUARD CHECK
-# ------------------------------------------------------------------------------
-if [ ! -d "dists" ] || [ -z "$(find dists/ -type f -name "Packages" 2>/dev/null)" ]; then
-    echo "WARNING: No active APT indices ('dists/**/Packages') discovered." >&2
-    echo "Creating an empty package database schema for Jekyll stability..." >&2
-    echo "packages: []" > "${OUTPUT_FILE}"
+# 2. Validate Target File Status Context
+if [ ! -s "${INDEX_FILE}" ]; then
+    if [ "${DEBUG_MODE}" = "true" ]; then
+        echo "    -> [PARSER NOTICE] Target manifest exists but holds 0 bytes (empty). Skipping blocks." >&2
+    fi
     exit 0
 fi
 
-# ------------------------------------------------------------------------------
-# 2. INITIALIZE POPULATED DATABASE MATRIX
-# ------------------------------------------------------------------------------
-echo "packages:" > "${OUTPUT_FILE}"
-echo "Scanning plain-text index manifests for high-performance table generation..."
-
-# ------------------------------------------------------------------------------
-# 3. RECURSIVELY PROCESS AND CONVERT PLAIN-TEXT REPO INDEXES TO YAML
-# ------------------------------------------------------------------------------
-find dists/ -type f -name "Packages" | sort | while read -r INDEX_FILE; do
-    CURRENT_SUITE=$(echo "${INDEX_FILE}" | cut -d'/' -f2)
-    CURRENT_COMPONENT=$(echo "${INDEX_FILE}" | cut -d'/' -f3)
-
-    if [ "${DEBUG_MODE}" = "true" ]; then
-        echo "=== [DEBUG START] COMPILING METADATA ASSETS FOR: ${INDEX_FILE} ===" >&2
-        echo "    -> Extracted Target Space: Suite='${CURRENT_SUITE}', Component='${CURRENT_COMPONENT}'" >&2
-        if [ ! -s "${INDEX_FILE}" ]; then
-            echo "    -> [NOTICE] Manifest file exists but is 0 bytes (empty). Skipping execution." >&2
-            echo "=== [DEBUG END] ===" >&2
-            continue
-        else
-            echo "    -> [NOTICE] File contains active data streams. Launching line-by-line parser matrix..." >&2
-        fi
-    fi
-
-    # 3. Line-By-Line Parser Execution with Conditional Variable Injections
-    awk -v suite="${CURRENT_SUITE}" -v component="${CURRENT_COMPONENT}" -v debug="${DEBUG_MODE}" '
-        BEGIN {
-            FS=": "
-            pkg="" ; ver="" ; desc="" ; file=""
-            record_count = 0
-            lines_in_block = 0
-        }
-        
-        # Track line data counters for deep error mapping
-        { lines_in_block++ }
-        
-        # Match standard distribution key indicators
-        $1 == "Package"     { pkg=$2 }
-        $1 == "Version"     { ver=$2 }
-        $1 == "Filename"    { file=$2 }
-        $1 == "Description" { desc=$2; in_desc=1; next }
-        
-        # Capture multiline wrapped description blocks
-        /^[ \t]/ && in_desc == 1 {
-            desc = desc "\n" $0
-            next
-        }
-        
-        # Turn off multiline description tracking if any other valid tag is hit
-        $1 ~ /^[A-Za-z\-]+$/ { in_desc=0 }
-
-        # A completely empty line marks the end of a single package record block
-        /^$/ {
-            record_count++
-            if (pkg != "" && file != "") {
-                split(file, file_parts, "/")
-                filename = file_parts[length(file_parts)]
-                
-                print "  - name: \"" pkg "\""
-                print "    version: \"" ver "\""
-                print "    suite: \"" suite "\""
-                print "    component: \"" component "\""
-                print "    file: \"" filename "\""
-                print "    description: \"" desc "\""
-                
-                if (debug == "true") {
-                    print "    [TRACE] Block #" record_count " (Lines: " lines_in_block "): Successfully matched and wrote Package=[" pkg "] Ver=[" ver "]" > "/dev/stderr"
-                }
-            } else if (debug == "true") {
-                print "    [WARNING] Block #" record_count " (Lines: " lines_in_block "): Skipping record layout because Package=[" pkg "] or Filename=[" file "] is empty" > "/dev/stderr"
-            }
-            # Flush variable states for the next incoming record loop pass
-            pkg="" ; ver="" ; desc="" ; file="" ; in_desc=0 ; lines_in_block = 0
-        }
-        
-        # Capture the final package block trailing records if a trailing newline is missing
-        END {
-            if (pkg != "" && file != "") {
-                record_count++
-                split(file, file_parts, "/")
-                filename = file_parts[length(file_parts)]
-                
-                print "  - name: \"" pkg "\""
-                print "    version: \"" ver "\""
-                print "    suite: \"" suite "\""
-                print "    component: \"" component "\""
-                print "    file: \"" filename "\""
-                print "    description: \"" desc "\""
-                
-                if (debug == "true") {
-                    print "    [TRACE] Terminal Block #" record_count " (Lines: " lines_in_block "): Successfully matched and wrote Package=[" pkg "]" > "/dev/stderr"
-                }
-            }
-            if (debug == "true") {
-                print "    [TRACE] Completed scanning file matrix. Total data blocks processed: " record_count > "/dev/stderr"
-            }
-        }
-    ' "${INDEX_FILE}" >> "${OUTPUT_FILE}"
-    
-    if [ "${DEBUG_MODE}" = "true" ]; then
-        echo "=== [DEBUG END] COMPILING METADATA ASSETS FOR: ${INDEX_FILE} ===" >&2
-    fi
-done
-
-echo "Apt repository data successfully written to: ${OUTPUT_FILE}"
+# 3. Isolate the Suite and Component attributes directly from the directory path
+# Example path: dists/bookworm/main/binary-all/Packages
+CURRENT_SUITE=$(echo "${INDEX_FILE}" | cut -d'/' -f2)      # Extracts: bookworm
+CURRENT_COMPONENT=$(echo "${INDEX_FILE}" | cut -d'/' -f3)  # Extracts: main
 
 if [ "${DEBUG_MODE}" = "true" ]; then
-    echo "=== [DEBUG START] RAW OUTPUT DUMP OF GENERATED packages.yml COMPONENT IN MEMORY ==="
-    cat "${OUTPUT_FILE}"
-    echo "=== [DEBUG END] ==="
+    echo "    -> [PARSER ENGAGED] Processing Suite='${CURRENT_SUITE}', Component='${CURRENT_COMPONENT}'" >&2
 fi
+
+# 4. Execute the Robust Line-By-Line text processing algorithm matrix
+awk -v suite="${CURRENT_SUITE}" -v component="${CURRENT_COMPONENT}" -v debug="${DEBUG_MODE}" '
+    BEGIN {
+        FS=": "
+        pkg="" ; ver="" ; desc="" ; file=""
+        record_count = 0
+        lines_in_block = 0
+    }
+    
+    # Track data lines to provide granular logging offsets
+    { lines_in_block++ }
+    
+    # Match standard distribution configuration parameters
+    $1 == "Package"     { pkg=$2 }
+    $1 == "Version"     { ver=$2 }
+    $1 == "Filename"    { file=$2 }
+    $1 == "Description" { desc=$2; in_desc=1; next }
+    
+    # Safely track multi-line indented paragraph blocks
+    /^[ \t]/ && in_desc == 1 {
+        desc = desc "\n" $0
+        next
+    }
+    
+    # Clear description flags when hitting a normal standard header tag
+    $1 ~ /^[A-Za-z\-]+$/ { in_desc=0 }
+
+    # A completely blank line signals the end of an isolated package record block
+    /^$/ {
+        record_count++
+        if (pkg != "" && file != "") {
+            split(file, file_parts, "/")
+            filename = file_parts[length(file_parts)]
+            
+            print "  - name: \"" pkg "\""
+            print "    version: \"" ver "\""
+            print "    suite: \"" suite "\""
+            print "    component: \"" component "\""
+            print "    file: \"" filename "\""
+            print "    description: \"" desc "\""
+            
+            if (debug == "true") {
+                print "        [TRACE] Block #" record_count " (Lines: " lines_in_block "): Successfully matched and wrote Package=[" pkg "]" > "/dev/stderr"
+            }
+        } else if (debug == "true") {
+            print "        [WARNING] Block #" record_count " (Lines: " lines_in_block "): Skipping record layout because required metadata fields are missing." > "/dev/stderr"
+        }
+        # Reset local cache tracking configurations
+        pkg="" ; ver="" ; desc="" ; file="" ; in_desc=0 ; lines_in_block = 0
+    }
+    
+    # Catch the final trailing data block if the file lacks a trailing newline
+    END {
+        if (pkg != "" && file != "") {
+            record_count++
+            split(file, file_parts, "/")
+            filename = file_parts[length(file_parts)]
+            
+            print "  - name: \"" pkg "\""
+            print "    version: \"" ver "\""
+            print "    suite: \"" suite "\""
+            print "    component: \"" component "\""
+            print "    file: \"" filename "\""
+            print "    description: \"" desc "\""
+            
+            if (debug == "true") {
+                print "        [TRACE] Terminal Block #" record_count " (Lines: " lines_in_block "): Successfully parsed trailing record Package=[" pkg "]" > "/dev/stderr"
+            }
+        }
+        if (debug == "true") {
+            print "        [TRACE] Stream finalized. Total blocks captured inside this instance: " record_count > "/dev/stderr"
+        }
+    }
+' "${INDEX_FILE}"
 
 exit 0

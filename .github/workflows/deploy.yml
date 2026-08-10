@@ -236,8 +236,12 @@ jobs:
 
       - name: Compile Jekyll Package Data from Apt Indexes
         run: |
+          # 1. Enforce executable file tracking flags across both script assets
+          chmod +x .github/apt/scripts/scan-repository-indexes.sh
           chmod +x .github/apt/scripts/compile-packages-data.sh
-          .github/apt/scripts/compile-packages-data.sh
+          
+          # 2. Fire up the master discovery scanner controller script
+          .github/apt/scripts/scan-repository-indexes.sh
 
       - name: Build Pages with Jekyll
         uses: actions/jekyll-build-pages@v1
