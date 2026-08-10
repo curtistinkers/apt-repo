@@ -46,14 +46,19 @@ echo "Scanning plain-text index manifests for high-performance table generation.
 # 3. RECURSIVELY PROCESS AND CONVERT PLAIN-TEXT REPO INDEXES TO YAML
 # ------------------------------------------------------------------------------
 find dists/ -type f -name "Packages" | sort | while read -r INDEX_FILE; do
-    echo "Parsing index map: ${INDEX_FILE}" >&2
+    echo "Parsing index map file path: ${INDEX_FILE}" >&2
     
-    awk '
+    # EXTRACT CONTEXT DIRECTLY FROM THE DIRECTORY PATH
+    # Example path: dists/bookworm/main/binary-all/Packages
+    CURRENT_SUITE=$(echo "${INDEX_FILE}" | cut -d'/' -f2)      # Extracts: bookworm
+    CURRENT_COMPONENT=$(echo "${INDEX_FILE}" | cut -d'/' -f3)  # Extracts: main
+
+    # 3. Process text paragraphs cleanly using explicit Bash environment injection
+    awk -v suite="${CURRENT_SUITE}" -v component="${CURRENT_COMPONENT}" '
         BEGIN { FS=": "; RS="" }
         {
             pkg="" ; ver="" ; desc="" ; file=""
             for(i=1; i<=NF; i++) {
-                # Cleanly extracts the text directly following the field labels
                 if($i ~ /^Package/)     { pkg=substr($0, index($0, $i)+length($i)+2); sub(/\n.*/, "", pkg) }
                 if($i ~ /^Version/)     { ver=substr($0, index($0, $i)+length($i)+2); sub(/\n.*/, "", ver) }
                 if($i ~ /^Description/) { desc=substr($0, index($0, $i)+length($i)+2); sub(/\n.*/, "", desc) }
@@ -61,11 +66,12 @@ find dists/ -type f -name "Packages" | sort | while read -r INDEX_FILE; do
             }
             
             if(file != "") {
-                split(file, path_parts, "/")
-                suite=path_parts[2]
-                component=path_parts[3]
-                filename=path_parts[4]
+                # Extract just the flat package filename from the end of the line
+                # Example: ./pool/bookworm/main/test.deb -> test.deb
+                split(file, file_parts, "/")
+                filename=file_parts[length(file_parts)]
                 
+                # Print the perfect formatted YAML properties directly
                 print "  - name: \"" pkg "\""
                 print "    version: \"" ver "\""
                 print "    suite: \"" suite "\""
