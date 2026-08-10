@@ -180,6 +180,23 @@ jobs:
       - name: Run apt-ftparchive Manifest Generation
         run: apt-ftparchive -c ".github/apt/${{ matrix.suite }}-release.conf" release "dists/${{ matrix.suite }}" > "dists/${{ matrix.suite }}/Release"
 
+      - name: Show Generated Package File(s)
+        run: |
+          for COMPONENT in ${{ needs.bootstrap.outputs.components_string }}; do
+            for ARCH in ${{ needs.bootstrap.outputs.architectures_string }}; do
+              PACKAGE_FILE="dists/${{ matrix.suite }}/${COMPONENT}/binary-${ARCH}/Packages"
+              if [ -f "${PACKAGE_FILE}" ]; then
+                printf '\n##\n'
+                printf '## START %s' "${PACKAGE_FILE}"
+                printf '\n##\n'
+                cat "${PACKAGE_FILE}"
+                printf '\n##\n'
+                printf '## END %s' "${PACKAGE_FILE}"
+                printf '\n##\n'
+              else
+            done
+          done
+
       - name: Stash Plaintext Metadata Indexes
         uses: actions/upload-artifact@v4
         with:
