@@ -277,3 +277,51 @@ jobs:
       - name: Deploy Live to GitHub Pages Cluster
         id: deployment
         uses: actions/deploy-pages@v4
+
+  # =========================================================================
+  # JOB 7: PARALLEL SECURE ZERO-TRUST PRIVATE SERVER MIRROR DEPLOYMENT
+  # =========================================================================
+  deploy-private-mirror:
+    name: Sync Mirror to Private Server
+    runs-on: ubuntu-latest
+    needs: [build-jekyll]
+    steps:
+      - name: Retrieve Compiled Site Pages
+        uses: actions/download-artifact@v4
+        with:
+          name: compiled-site
+          path: ./
+
+      - name: Install Cloudflare Tunnel Client
+        run: |
+          echo "Downloading official cloudflared Debian package..."
+          curl -L https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb -o cloudflared.deb
+          sudo dpkg -i cloudflared.deb
+          cloudflared --version
+
+      # 3. Configure the local SSH client environment to natively route through Cloudflare
+      - name: Configure Zero Trust SSH Proxy Command
+        run: |
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          
+          # Inject your server private key payload safely to disk
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          
+          # Set up an automated routing rule inside the SSH config ledger
+          # Every time SSH hits your domain, it passes through cloudflared using your Service Token headers
+          cat << EOF > ~/.ssh/config
+          Host *.curtistinkers.com
+            ProxyCommand /usr/local/bin/cloudflared access ssh --id ${{ secrets.CF_CLIENT_ID }} --secret ${{ secrets.CF_CLIENT_SECRET }} --hostname %h
+            IdentityFile ~/.ssh/id_ed25519
+            StrictHostKeyChecking no
+          EOF
+          chmod 600 ~/.ssh/config
+
+      # 4. Stream your completed repository assets over your encrypted tunnel path via rsync
+      - name: Stream Production Backup Copy over Cloudflare Tunnel
+        run: |
+          echo "Initiating secure block-level incremental sync over Zero Trust proxy..."
+          rsync -avz --delete \
+            ./ aptrepo@://curtistinkers.com:/user/aptrepo/apt-repo
