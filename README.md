@@ -1,7 +1,7 @@
 # APT Repository Website Infrastructure
 
 This repository hosts the static frontend and indexing automation for the custom
-APT repository served at **`http://apt.curtistinkers.com`**.
+APT repository served at [http://apt.curtistinkers.com](http://apt.curtistinkers.com).
 
 The project uses a dual-branch architecture deployed using GitHub Actions
 to keep the `main` branch clean whilst securely handling binary package uploads.
