@@ -23,7 +23,7 @@ concurrency:
 env:
   REPO_SUITES: '["bookworm", "trixie", "pve8", "pve9", "resolute", "noble", "focal"]'  # Array string for Job 1's matrix strategy
   REPO_COMPONENTS: '["main", "non-free"]'                 # Array string for Job 1's matrix strategy
-  REPO_ARCHITECTURES: '["all", "amd64"]'                # Array string for Job 1's matrix strategy
+  REPO_ARCHITECTURES: '["all", "any", "amd64"]'                # Array string for Job 1's matrix strategy
 
 jobs:
     # =========================================================================
